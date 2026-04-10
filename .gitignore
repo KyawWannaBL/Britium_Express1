@@ -101,3 +101,4 @@ uploaded_files/
 
 
 .vercel
+.env*.local
