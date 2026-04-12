@@ -36,8 +36,11 @@ function join(base: string, child?: string) {
 function flattenRoutes(node: AnyEl, base = "", acc = new Set<string>()) {
   React.Children.forEach(node, (child) => {
     if (!React.isValidElement(child)) return;
-    const isRoute = child.type === (RRD as any).Route ||
-      (typeof child.type === "function" && (child.type as any).name === "Route");
+    const routeComponent = (RRD as unknown as { Route: unknown }).Route;
+    const childType = child.type as unknown;
+    const isRoute =
+      childType === routeComponent ||
+      (typeof childType === "function" && "name" in childType && childType.name === "Route");
     if (isRoute) {
       const { path, index, children } = (child.props ?? {}) as { 
         path?: string; 
@@ -48,7 +51,7 @@ function flattenRoutes(node: AnyEl, base = "", acc = new Set<string>()) {
       if (index || path) acc.add(cur || "/");
       if (children) flattenRoutes(children, cur, acc);
     } else {
-      const kids = (child.props as any)?.children;
+      const kids = (child.props as { children?: AnyEl } | null | undefined)?.children;
       if (kids) flattenRoutes(kids, base, acc);
     }
   });
@@ -94,7 +97,7 @@ function postAllRoutesOnce(children: AnyEl) {
 
 /** Our patched <Routes/>: same API, just posts route list once. */
 export function Routes(props: React.ComponentProps<typeof RRD.Routes>) {
-  React.useEffect(() => { postAllRoutesOnce(props.children); }, []);
+  React.useEffect(() => { postAllRoutesOnce(props.children); }, [props.children]);
   return React.createElement(RRD.Routes, { ...props });
 }
 
@@ -150,7 +153,7 @@ function RouterBridge(): null {
 
   React.useEffect(() => {
     function onMessage(e: MessageEvent) {
-      const data = e.data as IframeCmd | any;
+      const data = e.data as IframeCmd | { type?: string; [key: string]: unknown };
       if (!data) return;
       
       // Check if route messaging is enabled

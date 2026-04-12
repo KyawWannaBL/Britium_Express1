@@ -601,7 +601,6 @@ function MotionButton({
   );
 }
 
-import "./CreateDelivery.css";
 
 export default function CreateDelivery() {
   // Removed local client;

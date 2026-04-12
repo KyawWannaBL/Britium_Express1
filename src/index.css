@@ -216,3 +216,15 @@
 :root {
   font-family: 'Inter', 'Noto Sans Myanmar', system-ui, sans-serif;
 }
+
+/* Production-safe branding layer:
+   Use absolute `/images/...` paths so Vite/Vercel serve from public/ correctly. */
+.app-shell-bg {
+  background-image:
+    radial-gradient(circle at 0% 0%, rgb(13 44 84 / 0.08), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgb(37 99 235 / 0.1), transparent 45%),
+    url("/images/cropped_image_87_1770395764125581619.jpg");
+  background-size: auto, auto, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat;
+}

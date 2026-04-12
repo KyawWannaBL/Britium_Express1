@@ -174,7 +174,13 @@ function StatusPill({
   return <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${cls}`}>{text}</span>;
 }
 
-function Modal(props: {
+function Modal({
+  open,
+  title,
+  onClose,
+  widthClass,
+  children,
+}: {
   open: boolean;
   title: string;
   onClose: () => void;
@@ -184,40 +190,40 @@ function Modal(props: {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!props.open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [props.open, props.onClose]);
+  }, [open, onClose]);
 
   useEffect(() => {
-    if (props.open) setTimeout(() => panelRef.current?.focus(), 0);
-  }, [props.open]);
+    if (open) setTimeout(() => panelRef.current?.focus(), 0);
+  }, [open]);
 
-  if (!props.open) return null;
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={props.onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div
         ref={panelRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className={`relative w-full ${props.widthClass ?? "max-w-3xl"} max-h-[90vh] overflow-y-auto rounded-[2rem] bg-[#05080F] shadow-2xl outline-none ring-1 ring-white/10`}
+        className={`relative w-full ${widthClass ?? "max-w-3xl"} max-h-[90vh] overflow-y-auto rounded-[2rem] bg-[#05080F] shadow-2xl outline-none ring-1 ring-white/10`}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#05080F]/90 p-6 backdrop-blur-md">
           <div>
-            <div className="font-black uppercase italic text-white">{props.title}</div>
+            <div className="font-black uppercase italic text-white">{title}</div>
             <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
               enterprise_identity_governance
             </div>
           </div>
-          <Button variant="ghost" className="text-slate-400 hover:text-white" onClick={props.onClose}>
+          <Button variant="ghost" className="text-slate-400 hover:text-white" onClick={onClose}>
             <XCircle className="h-5 w-5" />
           </Button>
         </div>
-        <div className="p-6">{props.children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
@@ -299,7 +305,6 @@ function downloadBlob(filename: string, contentType: string, data: string) {
 }
 
 export default function SettingsAuthorizationPortal() {
-  const supabase = useMemo(() => createClient(), []);
   const [actorEmail, setActorEmail] = useState("");
 
   const [language, setLanguage] = useState<Language>("both");
@@ -329,7 +334,7 @@ export default function SettingsAuthorizationPortal() {
     return () => {
       mounted = false;
     };
-  }, [supabase]);
+  }, []);
 
   const [systemFields, setSystemFields] = useState<SystemField[]>([
     {
@@ -1277,17 +1282,15 @@ export default function SettingsAuthorizationPortal() {
     const [rq, setRq] = useState("");
     const [status, setStatus] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("PENDING");
 
-    const rows = useMemo(() => {
-      const qq = safeLower(rq);
-      return store.authorityRequests
-        .filter((r) => (status === "ALL" ? true : r.status === status))
-        .filter((r) => {
-          if (!qq) return true;
-          const s = `${r.subjectEmail} ${r.permission} ${r.type} ${r.requestedBy}`.toLowerCase();
-          return s.includes(qq);
-        })
-        .slice(0, 200);
-    }, [store.authorityRequests, rq, status]);
+    const qq = safeLower(rq);
+    const rows = store.authorityRequests
+      .filter((r) => (status === "ALL" ? true : r.status === status))
+      .filter((r) => {
+        if (!qq) return true;
+        const s = `${r.subjectEmail} ${r.permission} ${r.type} ${r.requestedBy}`.toLowerCase();
+        return s.includes(qq);
+      })
+      .slice(0, 200);
 
     const canProcess = actorActive && roleIsPrivileged(actor?.role);
 
@@ -1304,7 +1307,11 @@ export default function SettingsAuthorizationPortal() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Select value={status} onChange={(e) => setStatus(e.target.value as any)} className="w-44">
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as "ALL" | "PENDING" | "APPROVED" | "REJECTED")}
+              className="w-44"
+            >
               <option value="PENDING">PENDING</option>
               <option value="APPROVED">APPROVED</option>
               <option value="REJECTED">REJECTED</option>
@@ -1601,7 +1608,10 @@ export default function SettingsAuthorizationPortal() {
             <div className="font-mono text-[11px] uppercase tracking-widest text-slate-500">
               {t("Action", "လုပ်ဆောင်ချက်")}
             </div>
-            <Select value={action} onChange={(e) => setAction(e.target.value as any)}>
+            <Select
+              value={action}
+              onChange={(e) => setAction(e.target.value as "APPROVE" | "REJECT" | "BLOCK" | "UNBLOCK" | "SET_ROLE")}
+            >
               <option value="APPROVE">{t("Approve", "အတည်ပြု")}</option>
               <option value="REJECT">{t("Reject", "ငြင်းပယ်")}</option>
               <option value="BLOCK">{t("Block", "ပိတ်")}</option>
@@ -2385,7 +2395,7 @@ export default function SettingsAuthorizationPortal() {
                     </div>
                     <Select
                       value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value as any)}
+                      onChange={(e) => setFilterStatus(e.target.value as AccountStatus | "ALL")}
                       className="w-44"
                       disabled={!canRead}
                     >
@@ -2403,7 +2413,7 @@ export default function SettingsAuthorizationPortal() {
                     </div>
                     <Select
                       value={filterRole}
-                      onChange={(e) => setFilterRole(e.target.value as any)}
+                      onChange={(e) => setFilterRole(e.target.value as Role | "ALL")}
                       className="w-52"
                       disabled={!canRead}
                     >
