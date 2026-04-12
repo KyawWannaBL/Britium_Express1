@@ -1,4 +1,4 @@
-"use client";
+
 
 import React, { useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";

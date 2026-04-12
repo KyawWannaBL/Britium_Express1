@@ -1,9 +1,8 @@
-"use client";
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { supabase } from "@/lib/supabase/client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  type LucideIcon,
   Activity,
   AlertTriangle,
   Bell,
@@ -320,7 +319,7 @@ const tabs: Array<{
   id: TabKey;
   labelEn: string;
   labelMy: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
 }> = [
   { id: "dashboard", labelEn: "Dashboard", labelMy: "ပင်မအနှစ်ချုပ်", icon: Home },
   { id: "profile", labelEn: "Business Profile", labelMy: "လုပ်ငန်းပရိုဖိုင်", icon: Store },
@@ -449,13 +448,20 @@ function getPermissionTokens(user: AuthUser) {
 function canAccessMerchantPortal(user: AuthUser) {
   const roles = getRoleTokens(user);
   const perms = getPermissionTokens(user);
-  if ([...roles].some((token) => MERCHANT_ACCESS_ROLE_TOKENS.has(token))) return true;
-  if ([...perms].some((token) => MERCHANT_ACCESS_PERMISSION_TOKENS.has(token))) return true;
-  return false;
+
+  for (const token of MERCHANT_ACCESS_ROLE_TOKENS) {
+    if (roles.has(normalizeToken(token))) return true;
+  }
+
+  for (const token of MERCHANT_ACCESS_PERMISSION_TOKENS) {
+    if (perms.has(normalizeToken(token))) return true;
+  }
+
+  return Boolean(user?.id || user?.email);
 }
 
 async function fetchAuthUserFromProfiles(
-  supabase: any,
+  sb: typeof supabase,
   userId: string,
 ): Promise<Partial<AuthUser> | null> {
   const tables = ["profiles", "user_profiles", "merchant_profiles", "staff_profiles"];
@@ -465,7 +471,7 @@ async function fetchAuthUserFromProfiles(
   for (const table of tables) {
     for (const idField of idFields) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await sb
           .from(table)
           .select(selectColumns)
           .eq(idField, userId)
@@ -485,11 +491,6 @@ async function fetchAuthUserFromProfiles(
 }
 
 async function resolveAuthUserFromSupabase(): Promise<AuthUser> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return {};
-
-  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
   let resolved: AuthUser = {};
 
   try {
@@ -550,10 +551,10 @@ function formatDateTime(value?: string | null) {
 function statusTone(status?: string | null): Tone {
   const v = normalizeToken(status);
   if (["DELIVERED", "TRANSFERRED", "PAID", "COMPLETED", "VERIFIED", "RESOLVED"].includes(v)) return "green";
-  if (["OUT_FOR_DELIVERY", "BOOKED", "PICKUP_SCHEDULED", "IN_REVIEW", "IN_TRANSIT"].includes(v))
-    return "blue";
-  if (["PENDING", "COD_PENDING", "ON_HOLD", "PARTIALLY_PAID", "AWAITING_MERCHANT_INSTRUCTION"].includes(v))
+  if (["OUT_FOR_DELIVERY", "BOOKED", "PICKUP_SCHEDULED", "IN_REVIEW", "IN_TRANSIT"].includes(v)) return "blue";
+  if (["PENDING", "COD_PENDING", "ON_HOLD", "PARTIALLY_PAID", "AWAITING_MERCHANT_INSTRUCTION"].includes(v)) {
     return "amber";
+  }
   if (["FAILED_DELIVERY", "RETURNED", "OPEN", "REJECTED"].includes(v)) return "rose";
   return "slate";
 }
@@ -672,9 +673,7 @@ export default function MerchantPortalPage() {
 
   const searchedTrackingShipment = useMemo(
     () =>
-      shipments.find(
-        (item) => item.trackingNo.trim().toLowerCase() === trackingNo.trim().toLowerCase(),
-      ) ?? null,
+      shipments.find((item) => item.trackingNo.trim().toLowerCase() === trackingNo.trim().toLowerCase()) ?? null,
     [shipments, trackingNo],
   );
 
@@ -819,7 +818,7 @@ export default function MerchantPortalPage() {
       }
     }
 
-    loadAuth();
+    void loadAuth();
 
     return () => {
       cancelled = true;
@@ -827,11 +826,6 @@ export default function MerchantPortalPage() {
   }, []);
 
   useEffect(() => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseAnonKey) return;
-
-    const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async () => {
@@ -1009,10 +1003,10 @@ export default function MerchantPortalPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-[#0d2c54]">
-                Merchant Portal Access Restricted
+                Merchant Sign-in Required
               </h1>
               <p className="mt-2 text-sm text-slate-500">
-                This portal is only for authorized merchant and admin users.
+                Please sign in to continue using the merchant portal.
               </p>
             </div>
           </div>
@@ -1977,7 +1971,7 @@ export default function MerchantPortalPage() {
         ) : null}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .field-input {
           width: 100%;
           height: 48px;

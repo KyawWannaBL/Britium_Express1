@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -188,7 +186,7 @@ const BI = (en: string, my: string): Bi => ({ en, my });
 const tabs: Array<{
   id: TabKey;
   label: Bi;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
 }> = [
   { id: "dashboard", label: BI("Dashboard", "ပင်မအနှစ်ချုပ်"), icon: Home },
   { id: "profile", label: BI("Business Profile", "လုပ်ငန်းပရိုဖိုင်"), icon: Store },
@@ -523,7 +521,7 @@ function tw(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function useBilingualText(mode: LanguageMode, text: Bi) {
+function bilingualText(mode: LanguageMode, text: Bi) {
   if (mode === "en") return text.en;
   if (mode === "my") return text.my;
   return `${text.en} / ${text.my}`;
@@ -1223,7 +1221,7 @@ export default function MerchantPortalPremium() {
             <Line label={BI("Insurance Fee", "အာမခံကြေး")} value={bookingEstimate.insuranceFee} mode={mode} dark />
             <Line label={BI("Urgent Surcharge", "အရေးပေါ်ဝန်ဆောင်မှုကြေး")} value={bookingEstimate.urgentFee} mode={mode} dark />
             <div className="mt-3 border-t border-white/10 pt-3 flex items-center justify-between text-base font-black text-[#ffd700]">
-              <span>{useBilingualText(mode, BI("Total Estimated Charge", "ခန့်မှန်းစုစုပေါင်းကျသင့်ငွေ"))}</span>
+              <span>{bilingualText(mode, BI("Total Estimated Charge", "ခန့်မှန်းစုစုပေါင်းကျသင့်ငွေ"))}</span>
               <span>{bookingEstimate.total.toLocaleString()} Ks</span>
             </div>
           </div>
@@ -1313,10 +1311,10 @@ export default function MerchantPortalPremium() {
       <SurfaceCard>
         <SectionTitle mode={mode} icon={<Boxes size={18} />} title={BI("Shipment Management", "shipment စီမံခန့်ခွဲမှု") } subtitle={BI("Searchable merchant shipment list with operational filters, actions, invoices, and reorder tools.", "search၊ filter၊ action၊ invoice နှင့် reorder tool များပါသော merchant shipment list ဖြစ်သည်။")} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-          <TextInput value="" onChange={() => {}} placeholder={useBilingualText(mode, BI("Search tracking / receiver / destination", "tracking / လက်ခံသူ / destination ရှာဖွေမည်"))} icon={<Search size={15} />} />
-          <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: useBilingualText(mode, BI("All Statuses", "အခြေအနေအားလုံး")) }, { value: "delivered", label: "Delivered" }, { value: "in_transit", label: "In Transit" }]} />
-          <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: useBilingualText(mode, BI("All Destinations", "destination အားလုံး")) }, { value: "yangon", label: "Yangon" }, { value: "mandalay", label: "Mandalay" }]} />
-          <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: useBilingualText(mode, BI("COD Filter", "COD filter")) }, { value: "cod", label: "COD" }, { value: "non_cod", label: "Non-COD" }]} />
+          <TextInput value="" onChange={() => {}} placeholder={bilingualText(mode, BI("Search tracking / receiver / destination", "tracking / လက်ခံသူ / destination ရှာဖွေမည်"))} icon={<Search size={15} />} />
+          <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: bilingualText(mode, BI("All Statuses", "အခြေအနေအားလုံး")) }, { value: "delivered", label: "Delivered" }, { value: "in_transit", label: "In Transit" }]} />
+          <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: bilingualText(mode, BI("All Destinations", "destination အားလုံး")) }, { value: "yangon", label: "Yangon" }, { value: "mandalay", label: "Mandalay" }]} />
+          <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: bilingualText(mode, BI("COD Filter", "COD filter")) }, { value: "cod", label: "COD" }, { value: "non_cod", label: "Non-COD" }]} />
           <TextInput value="2026-04-01" onChange={() => {}} placeholder="Start" type="date" />
           <TextInput value="2026-04-30" onChange={() => {}} placeholder="End" type="date" />
         </div>
@@ -1386,7 +1384,7 @@ export default function MerchantPortalPremium() {
           <div className="space-y-4">
             <div>
               <Label mode={mode} label={BI("Tracking Number / AWB", "Tracking Number / AWB") } />
-              <TextInput value={searchTracking} onChange={setSearchTracking} placeholder={useBilingualText(mode, BI("Enter tracking number", "tracking number ထည့်ပါ"))} icon={<Search size={15} />} />
+              <TextInput value={searchTracking} onChange={setSearchTracking} placeholder={bilingualText(mode, BI("Enter tracking number", "tracking number ထည့်ပါ"))} icon={<Search size={15} />} />
             </div>
             {searchedShipment ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1398,7 +1396,7 @@ export default function MerchantPortalPremium() {
                 <div className="mt-2 text-sm font-medium text-slate-500">ETA: {searchedShipment.eta}</div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-6 text-sm font-semibold text-slate-500">{useBilingualText(mode, BI("No shipment found for this tracking number.", "ဤ tracking number အတွက် shipment မတွေ့ရှိပါ။"))}</div>
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-6 text-sm font-semibold text-slate-500">{bilingualText(mode, BI("No shipment found for this tracking number.", "ဤ tracking number အတွက် shipment မတွေ့ရှိပါ။"))}</div>
             )}
           </div>
         </SurfaceCard>
@@ -1490,7 +1488,7 @@ export default function MerchantPortalPremium() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               <TextInput value="2026-04-01" onChange={() => {}} placeholder="Start" type="date" />
               <TextInput value="2026-04-30" onChange={() => {}} placeholder="End" type="date" />
-              <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: useBilingualText(mode, BI("All Branches", "ရုံးခွဲအားလုံး")) }, { value: "ygn", label: "Yangon" }]} />
+              <SelectInput value="all" onChange={() => {}} options={[{ value: "all", label: bilingualText(mode, BI("All Branches", "ရုံးခွဲအားလုံး")) }, { value: "ygn", label: "Yangon" }]} />
               <ActionButton tone="secondary"><Filter size={15} /> Filter</ActionButton>
             </div>
             <div className="mt-5 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
@@ -1587,7 +1585,7 @@ export default function MerchantPortalPremium() {
               BI("Return to sender", "ပေးပို့သူထံပြန်ပို့မည်"),
               BI("Hold shipment", "shipment ကိုခဏရပ်ထားမည်"),
             ].map((item) => (
-              <div key={item.en} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-white/75">{useBilingualText(mode, item)}</div>
+              <div key={item.en} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-white/75">{bilingualText(mode, item)}</div>
             ))}
           </div>
         </DarkCard>
@@ -1646,7 +1644,7 @@ export default function MerchantPortalPremium() {
         <SurfaceCard>
           <SectionTitle mode={mode} icon={<Users size={18} />} title={BI("Receiver Directory", "လက်ခံသူစာရင်း") } subtitle={BI("Saved receivers, recent contacts, frequently used destinations, and reusable address details for fast merchant booking.", "saved receiver၊ recent contact၊ frequently used destination နှင့် reusable address detail များပါဝင်သော merchant address book ဖြစ်သည်။")} />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <TextInput value="" onChange={() => {}} placeholder={useBilingualText(mode, BI("Search phone / address / receiver", "ဖုန်း / လိပ်စာ / လက်ခံသူရှာမည်"))} icon={<Search size={15} />} />
+            <TextInput value="" onChange={() => {}} placeholder={bilingualText(mode, BI("Search phone / address / receiver", "ဖုန်း / လိပ်စာ / လက်ခံသူရှာမည်"))} icon={<Search size={15} />} />
             <ActionButton tone="secondary"><Filter size={15} /> Filter</ActionButton>
             <ActionButton><Users size={15} /> Add Receiver</ActionButton>
           </div>
@@ -1680,7 +1678,7 @@ export default function MerchantPortalPremium() {
               BI("Frequent destination: Sanchaung, Yangon", "မကြာခဏပို့ဆောင်ရာနေရာ - Sanchaung, Yangon"),
               BI("Preferred note: Call before arrival", "အသုံးများသောမှတ်ချက် - မရောက်မီဖုန်းခေါ်ပါ"),
             ].map((item) => (
-              <div key={item.en} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm text-sm font-semibold text-slate-600">{useBilingualText(mode, item)}</div>
+              <div key={item.en} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm text-sm font-semibold text-slate-600">{bilingualText(mode, item)}</div>
             ))}
           </div>
         </SurfaceCard>
@@ -1703,7 +1701,7 @@ export default function MerchantPortalPremium() {
             <div className="md:col-span-2">
               <Label mode={mode} label={BI("Attachment Upload", "attachment upload")}/>
               <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.99 }} type="button" className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-8 text-sm font-bold text-slate-500 transition hover:border-[#0d2c54]/30 hover:bg-white">
-                <Upload size={18} /> {useBilingualText(mode, BI("Upload attachment", "attachment တင်မည်"))}
+                <Upload size={18} /> {bilingualText(mode, BI("Upload attachment", "attachment တင်မည်"))}
               </motion.button>
             </div>
           </div>
@@ -1914,7 +1912,7 @@ function ReadTile({ label, value, mode }: { label: Bi; value: string; mode: Lang
 function Line({ label, value, mode, dark = false }: { label: Bi; value: number; mode: LanguageMode; dark?: boolean }) {
   return (
     <div className={tw("flex items-center justify-between text-sm font-semibold", dark ? "text-white/75" : "text-slate-600") }>
-      <span>{useBilingualText(mode, label)}</span>
+      <span>{bilingualText(mode, label)}</span>
       <span>{value.toLocaleString()} Ks</span>
     </div>
   );

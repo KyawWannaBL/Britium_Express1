@@ -102,3 +102,9 @@ uploaded_files/
 
 .vercel
 .env*.local
+
+# local temp and backups
+*.bak
+*.bak.*
+supabase/.temp/
+public/assets/

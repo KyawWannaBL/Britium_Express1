@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
@@ -12,7 +10,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
-  Globe2,
   MapPin,
   Package2,
   Printer,
@@ -91,18 +88,6 @@ type FormState = {
 };
 
 type FormErrors = Partial<Record<keyof FormState | "general", string>>;
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-en",
-});
-
-const myanmar = Noto_Sans_Myanmar({
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-  variable: "--font-my",
-});
 
 const emptyForm: FormState = {
   service_type: "same_day",
@@ -505,6 +490,7 @@ function SelectInput({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        title="Select an option"
         className={[
           "w-full appearance-none rounded-2xl bg-transparent px-4 py-3.5 pr-10 text-sm font-semibold outline-none",
           dark ? "text-white" : "text-[#0d2c54]",
@@ -615,7 +601,9 @@ function MotionButton({
   );
 }
 
-export default function CreateDeliveryClient() {
+import "./CreateDelivery.css";
+
+export default function CreateDelivery() {
   // Removed local client;
 
   const [loadingAction, setLoadingAction] = useState<ActionType | null>(null);
@@ -936,7 +924,7 @@ export default function CreateDeliveryClient() {
   const headerMetrics = [
     {
       label: copyFor(language, "Service Type", "ဝန်ဆောင်မှုအမျိုးအစား"),
-      value: form.service_type.replaceAll("_", " "),
+      value: form.service_type.replace(/_/g, " "),
     },
     {
       label: copyFor(language, "Chargeable Weight", "တွက်ချက်အလေးချိန်"),
@@ -947,15 +935,10 @@ export default function CreateDeliveryClient() {
       value: `${formatMoney(totalToCollect, currencyLocale)} Ks`,
     },
   ];
-
-  return (
-    <div
-      className={`${inter.variable} ${myanmar.variable} min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(13,44,84,0.12),transparent_26%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_24%),linear-gradient(180deg,#f8fbff_0%,#eef4fb_54%,#f8fafc_100%)]`}
-      style={{
-        fontFamily:
-          'var(--font-en), var(--font-my), "Noto Sans Myanmar", "Myanmar Text", system-ui, sans-serif',
-      }}
-    >
+return (
+  <div
+    className="min-h-screen custom-bg"
+  >
       <motion.div
         variants={pageVariants}
         initial="hidden"
@@ -1000,7 +983,7 @@ export default function CreateDeliveryClient() {
             <div className="flex flex-col gap-3 xl:items-end">
               <SegmentedControl
                 value={language}
-                onChange={setLanguage}
+                onChange={(value) => setLanguage(value as Language)}
                 className="language"
                 items={[
                   { value: "en", label: "EN" },
@@ -1010,7 +993,7 @@ export default function CreateDeliveryClient() {
               />
               <SegmentedControl
                 value={deliveryMode}
-                onChange={setDeliveryMode}
+                onChange={(value) => setDeliveryMode(value as DeliveryMode)}
                 className="mode"
                 items={[
                   {
