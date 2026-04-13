@@ -3,8 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
-import { Sidebar } from "./components/Sidebar";
+import AppSidebar from "@/components/AppSidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CreateDelivery from "./pages/CreateDelivery";
@@ -21,16 +24,22 @@ import CustomerPortal from "./pages/CustomerPortal";
 
 const queryClient = new QueryClient();
 
-const Layout = ({ children }: { children: React.ReactNode }) => (
-  <div className="app-shell-bg flex min-h-screen w-full overflow-hidden bg-background">
-    <div className="shrink-0">
-      <Sidebar />
-    </div>
-    <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-8">
-      {children}
-    </main>
-  </div>
-);
+function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-3 border-b bg-background px-4">
+          <SidebarTrigger />
+          <div className="text-sm font-semibold text-muted-foreground">
+            Britium Express Portal
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -45,120 +54,131 @@ const App = () => (
             path="/"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <Dashboard />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
+
           <Route
             path="/create-delivery"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <CreateDelivery />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/way-management"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <WayManagement />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/customer-service"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <CustomerServicePortal />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/customer"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <CustomerPortal />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/supervisor"
             element={
               <PrivateRoute allowedRoles={["super_admin", "admin", "supervisor"]}>
-                <Layout>
+                <AppLayout>
                   <SupervisorPortal />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/data-entry"
             element={
               <PrivateRoute allowedRoles={["super_admin", "admin", "data_entry"]}>
-                <Layout>
+                <AppLayout>
                   <DataEntryPortal />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/deliverymen"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <Deliverymen />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/merchants"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <Merchants />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/receipts"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <Receipts />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/reporting"
             element={
               <PrivateRoute>
-                <Layout>
+                <AppLayout>
                   <Reporting />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
+
           <Route
             path="/settings"
             element={
               <PrivateRoute allowedRoles={["super_admin", "admin"]}>
-                <Layout>
+                <AppLayout>
                   <Settings />
-                </Layout>
+                </AppLayout>
               </PrivateRoute>
             }
           />
