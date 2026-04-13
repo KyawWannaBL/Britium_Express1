@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import { supabase } from "@/lib/supabase/client";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sidebar } from "./components/Sidebar";
@@ -24,6 +21,7 @@ import SupervisorPortal from "./pages/SupervisorPortal";
 import DataEntryPortal from "./pages/DataEntryPortal";
 import CustomerServicePortal from "./pages/CustomerServicePortal";
 import CustomerPortal from "./pages/CustomerPortal";
+import BranchOfficePortal from "./pages/BranchOfficePortal";
 
 import CreateDeliveryScreen from "../features/production-delivery/screens/CreateDeliveryScreen";
 import PickupExecutionScreen from "../features/production-delivery/screens/PickupExecutionScreen";
@@ -36,41 +34,6 @@ import OcrWorkbenchScreen from "../features/production-delivery/screens/OcrWorkb
 import LiveTrackingScreen from "../features/production-delivery/screens/LiveTrackingScreen";
 
 const queryClient = new QueryClient();
-
-function RootRedirect() {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
-
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setSession(data.session ?? null);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession ?? null);
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  if (session === undefined) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#05080F_0%,#0B1B34_100%)] text-white">
-        <div className="rounded-3xl border border-white/10 bg-white/5 px-8 py-5 text-sm font-semibold backdrop-blur">
-          Loading Britium Express...
-        </div>
-      </div>
-    );
-  }
-
-  return <Navigate to={session?.user ? "/dashboard" : "/login"} replace />;
-}
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -116,7 +79,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<RootRedirect />} />
+          <Route path="/" element={<Navigate to="/login?force=1" replace />} />
           <Route path="/login" element={<Login />} />
 
           <Route
@@ -186,9 +149,20 @@ const App = () => (
           />
 
           <Route
+            path="/branch-office"
+            element={
+              <PrivateRoute allowedRoles={["super_admin", "admin", "SYS", "BMG", "ROM", "BRANCH_MANAGER", "BRANCH_ADMIN", "BRANCH_SUPERVISOR", "BRANCH_OFFICE"]}>
+                <AppLayout>
+                  <BranchOfficePortal />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
             path="/data-entry"
             element={
-              <PrivateRoute allowedRoles={["super_admin", "admin", "data_entry", "SYS", "HSC", "HSP"]}>
+              <PrivateRoute allowedRoles={["super_admin", "admin", "data_entry", "SYS", "HSC", "HSP", "DATA_ENTRY", "DATA_ENTRY_CLERK", "DATA_ENTRY_SUPERVISOR", "SENIOR_DATA_ENTRY_REVIEWER"]}>
                 <AppLayout>
                   <DataEntryPortal />
                 </AppLayout>
@@ -239,6 +213,8 @@ const App = () => (
               </PrivateRoute>
             }
           />
+
+          <Route path="/reports" element={<Navigate to="/reporting" replace />} />
 
           <Route
             path="/settings"

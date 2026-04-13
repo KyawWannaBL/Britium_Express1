@@ -20,6 +20,7 @@ import {
   Route,
   Warehouse,
   Activity,
+  Building2,
   Boxes,
   ClipboardList,
   MapPinned,
@@ -57,6 +58,7 @@ const managementNav: NavItem[] = [
   { title: "Customer Service", url: "/customer-service", icon: Headset },
   { title: "Supervisor", url: "/supervisor", icon: ShieldCheck },
   { title: "Data Entry", url: "/data-entry", icon: Database },
+  { title: "Branch Office", url: "/branch-office", icon: Building2 },
   { title: "Deliverymen", url: "/deliverymen", icon: Users },
   { title: "Receipts", url: "/receipts", icon: FileText },
   { title: "Reporting", url: "/reporting", icon: BarChart3 },
@@ -134,11 +136,11 @@ export function Sidebar() {
           asChild
           isActive={isActive(item.url)}
           tooltip={item.title}
-          className="h-10 rounded-xl text-slate-100 transition hover:bg-white/10 data-[active=true]:bg-cyan-500/15 data-[active=true]:text-cyan-200"
+          className="h-11 rounded-xl text-slate-100 transition hover:bg-white/10 data-[active=true]:bg-cyan-500/15 data-[active=true]:text-cyan-200"
         >
-          <Link to={item.url}>
-            <item.icon className="h-4 w-4" />
-            <span>{item.title}</span>
+          <Link to={item.url} className="flex w-full items-center gap-3">
+            <item.icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{item.title}</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -147,7 +149,13 @@ export function Sidebar() {
   return (
     <UISidebar
       collapsible="offcanvas"
-      className="border-r border-white/10 bg-[#061120]/95 text-white backdrop-blur-xl"
+      className="
+        [&_[data-sidebar=sidebar]]:border-r
+        [&_[data-sidebar=sidebar]]:border-white/10
+        [&_[data-sidebar=sidebar]]:bg-[linear-gradient(180deg,#061120_0%,#0A1830_100%)]
+        [&_[data-sidebar=sidebar]]:text-slate-100
+        [&_[data-sidebar=sidebar]]:shadow-2xl
+      "
     >
       <SidebarHeader className="shrink-0 border-b border-white/10 p-3">
         <div className="rounded-2xl border border-cyan-500/15 bg-[linear-gradient(180deg,#081526_0%,#0b1e37_100%)] px-3 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.28)]">
@@ -167,9 +175,9 @@ export function Sidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="britium-sidebar-scroll min-h-0 overflow-y-auto px-2 pb-6 pt-3">
+      <SidebarContent className="britium-sidebar-scroll flex-1 overflow-y-auto px-2 py-3">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+          <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
             Core
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -177,75 +185,75 @@ export function Sidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {showManagement ? (
+        {showManagement && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
               Management
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(managementNav)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
+        )}
 
-        {showCustomer ? (
+        {showCustomer && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
               Customer
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(customerNav)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
+        )}
 
-        {showMerchant ? (
+        {showMerchant && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
               Merchant
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(merchantNav)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
+        )}
 
-        {showRider ? (
+        {showRider && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
               Rider / Driver
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(riderNav)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
+        )}
 
-        {showWarehouse ? (
+        {showWarehouse && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
               Warehouse / Hub
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(warehouseNav)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
+        )}
 
-        {showAll ? (
+        {showAll && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/50">
+            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
               Production Delivery Suite
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(superNav)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
+        )}
       </SidebarContent>
 
       <SidebarFooter className="shrink-0 border-t border-white/10 p-3">
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-white/70">
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-slate-300">
           Signed in as {email || "user"} · role {effectiveRole || "INT"}
         </div>
       </SidebarFooter>
