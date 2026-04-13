@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
-import AppSidebar from "@/components/AppSidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar } from "./components/Sidebar";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -22,21 +22,51 @@ import DataEntryPortal from "./pages/DataEntryPortal";
 import CustomerServicePortal from "./pages/CustomerServicePortal";
 import CustomerPortal from "./pages/CustomerPortal";
 
+import CreateDeliveryScreen from "../features/production-delivery/screens/CreateDeliveryScreen";
+import PickupExecutionScreen from "../features/production-delivery/screens/PickupExecutionScreen";
+import WarehouseExecutionScreen from "../features/production-delivery/screens/WarehouseExecutionScreen";
+import DeliveryExecutionScreen from "../features/production-delivery/screens/DeliveryExecutionScreen";
+import WayManagementScreen from "../features/production-delivery/screens/WayManagementScreen";
+import FocusedWayListScreen from "../features/production-delivery/screens/FocusedWayListScreen";
+import ParcelIntakeScreen from "../features/production-delivery/screens/ParcelIntakeScreen";
+import OcrWorkbenchScreen from "../features/production-delivery/screens/OcrWorkbenchScreen";
+import LiveTrackingScreen from "../features/production-delivery/screens/LiveTrackingScreen";
+
 const queryClient = new QueryClient();
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-14 items-center gap-3 border-b bg-background px-4">
-          <SidebarTrigger />
-          <div className="text-sm font-semibold text-muted-foreground">
-            Britium Express Portal
-          </div>
-        </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
-      </SidebarInset>
+      <div className="app-shell-bg flex min-h-screen w-full overflow-hidden">
+        <Sidebar />
+        <SidebarInset>
+          <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-white/10 bg-[#07111f]/80 px-4 backdrop-blur">
+            <SidebarTrigger className="text-white hover:bg-white/10 hover:text-white" />
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo.png"
+                alt="Britium Express"
+                className="h-9 w-9 rounded-xl object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
+                  Enterprise Delivery
+                </div>
+                <div className="text-sm font-bold text-white">
+                  Britium Express Operations
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="min-h-[calc(100vh-4rem)] p-4 md:p-8">
+            {children}
+          </main>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
@@ -183,7 +213,106 @@ const App = () => (
             }
           />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="/production/create-delivery"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <CreateDeliveryScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/pickup-execution"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <PickupExecutionScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/warehouse-execution"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <WarehouseExecutionScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/delivery-execution"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <DeliveryExecutionScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/way-management"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <WayManagementScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/focused-way-list"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <FocusedWayListScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/parcel-intake"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <ParcelIntakeScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/ocr-workbench"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <OcrWorkbenchScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/production/live-tracking"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <LiveTrackingScreen />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

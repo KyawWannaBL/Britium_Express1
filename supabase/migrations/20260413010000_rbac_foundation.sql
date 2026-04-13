@@ -26,6 +26,18 @@ create table if not exists public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+alter table if exists public.audit_logs
+  add column if not exists actor_id uuid null,
+  add column if not exists actor_email text null,
+  add column if not exists action text,
+  add column if not exists entity_type text,
+  add column if not exists entity_id text null,
+  add column if not exists status text default 'success',
+  add column if not exists before_data jsonb null,
+  add column if not exists after_data jsonb null,
+  add column if not exists notes text null,
+  add column if not exists created_at timestamptz not null default now();
+
 create table if not exists public.approval_requests (
   id uuid primary key default gen_random_uuid(),
   request_type text not null,
@@ -42,6 +54,20 @@ create table if not exists public.approval_requests (
   created_at timestamptz not null default now()
 );
 
+alter table if exists public.approval_requests
+  add column if not exists request_type text,
+  add column if not exists entity_type text,
+  add column if not exists entity_id text null,
+  add column if not exists requested_by uuid null,
+  add column if not exists requested_role text null,
+  add column if not exists status text default 'pending',
+  add column if not exists payload jsonb null,
+  add column if not exists approved_by uuid null,
+  add column if not exists approved_at timestamptz null,
+  add column if not exists rejected_by uuid null,
+  add column if not exists rejected_at timestamptz null,
+  add column if not exists created_at timestamptz not null default now();
+
 alter table public.audit_logs enable row level security;
 alter table public.approval_requests enable row level security;
 
@@ -50,10 +76,7 @@ returns text
 language sql
 stable
 as $$
-  select coalesce(
-    (auth.jwt() ->> 'email'),
-    ''
-  )
+  select coalesce((auth.jwt() ->> 'email'), '')
 $$;
 
 create or replace function public.is_superadmin()
@@ -115,12 +138,12 @@ with check (public.is_superadmin());
 update auth.users
 set raw_app_meta_data =
   coalesce(raw_app_meta_data, '{}'::jsonb) ||
-  '{"role":"super_admin","role_code":"SYS","app_role":"SYS","user_role":"SYS"}'::jsonb
+  '{"role":"SYS","role_code":"SYS","app_role":"SYS","user_role":"SYS"}'::jsonb
 where email = 'md@britiumexpress.com';
 
 update public.profiles
 set
-  role = 'super_admin',
+  role = 'SYS',
   role_code = 'SYS',
   app_role = 'SYS',
   user_role = 'SYS',

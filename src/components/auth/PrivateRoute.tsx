@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client";
 
 type AuthState = "loading" | "authenticated" | "unauthenticated";
@@ -10,113 +11,138 @@ type PrivateRouteProps = {
   allowedRoles?: string[];
 };
 
-const resolveRole = (session: Session | null): string | undefined => {
-  if (!session?.user) return undefined;
-  const appRole = session.user.app_metadata?.role;
-  const userRole = session.user.user_metadata?.role;
-  return typeof appRole === "string" ? appRole : typeof userRole === "string" ? userRole : undefined;
-};
+const GLOBAL_ACCESS_ROLES = new Set([
+  "super_admin",
+  "admin",
+  "sys",
+  "app_owner",
+]);
 
-export function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
-  const [state, setState] = useState<AuthState>("loading");
-  const [session, setSession] = useState<Session | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+const MD_SUPERADMIN_EMAIL = "md@britiumexpress.com";
+
+function normalizeRole(value?: string | null) {
+  return (value ?? "")
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .toLowerCase();
+}
+
+async function resolveRole(session: Session | null): Promise<string> {
+  if (!session?.user) return "guest";
+
+  const email = session.user.email?.toLowerCase() ?? "";
+  if (email === MD_SUPERADMIN_EMAIL) return "super_admin";
+
+  const metaRole = normalizeRole(
+    (session.user.app_metadata as any)?.role ||
+      (session.user.app_metadata as any)?.role_code ||
+      (session.user.user_metadata as any)?.role
+  );
+
+  if (metaRole) return metaRole;
+
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("role, role_code, app_role, user_role")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    const row: any = data || {};
+    return normalizeRole(
+      row.role || row.role_code || row.app_role || row.user_role || "guest"
+    );
+  } catch {
+    return "guest";
+  }
+}
+
+export function PrivateRoute({
+  children,
+  allowedRoles = [],
+}: PrivateRouteProps) {
+  const location = useLocation();
+
+  const [authState, setAuthState] = useState<AuthState>("loading");
+  const [resolvedRole, setResolvedRole] = useState("guest");
+
+  const normalizedAllowedRoles = useMemo(
+    () => allowedRoles.map((role) => normalizeRole(role)),
+    [allowedRoles]
+  );
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
-    const bootstrap = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setSession(data.session ?? null);
-      setState(data.session ? "authenticated" : "unauthenticated");
-    };
+    async function load() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-    void bootstrap();
+        if (!session?.user) {
+          if (!cancelled) setAuthState("unauthenticated");
+          return;
+        }
 
-    const { data: authSub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mounted) return;
-      setSession(nextSession ?? null);
-      setState(nextSession ? "authenticated" : "unauthenticated");
+        const role = await resolveRole(session);
+
+        if (!cancelled) {
+          setResolvedRole(role);
+          setAuthState("authenticated");
+        }
+      } catch {
+        if (!cancelled) setAuthState("unauthenticated");
+      }
+    }
+
+    load();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session?.user) {
+        setResolvedRole("guest");
+        setAuthState("unauthenticated");
+        return;
+      }
+
+      const role = await resolveRole(session);
+      setResolvedRole(role);
+      setAuthState("authenticated");
     });
 
     return () => {
-      mounted = false;
-      authSub.subscription.unsubscribe();
+      cancelled = true;
+      subscription.unsubscribe();
     };
   }, []);
 
-  const userRole = useMemo(() => resolveRole(session), [session]);
-  const roleAllowed =
-    !allowedRoles?.length ||
-    (userRole ? allowedRoles.map((r) => r.toLowerCase()).includes(userRole.toLowerCase()) : false);
-
-  const signIn = async (e: FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setAuthError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setAuthError(error.message);
-    setSubmitting(false);
-  };
-
-  if (state === "loading") {
+  if (authState === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="rounded-xl border bg-card px-6 py-4 text-sm text-muted-foreground shadow-sm">
-          Loading secure session...
+      <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#07111f_0%,#0a1830_100%)] px-4">
+        <div className="rounded-3xl border border-white/10 bg-white/5 px-8 py-6 text-sm font-semibold text-white/80 backdrop-blur">
+          Checking access...
         </div>
       </div>
     );
   }
 
-  if (state === "unauthenticated") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <form onSubmit={signIn} className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-lg">
-          <h1 className="text-xl font-bold text-foreground">Britium Security Login</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Sign in to access role-protected logistics dashboards.</p>
-          <div className="mt-4 space-y-3">
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type="email"
-              required
-              placeholder="Email"
-              className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
-            />
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              required
-              placeholder="Password"
-              className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
-            />
-          </div>
-          {authError ? <p className="mt-3 text-sm text-destructive">{authError}</p> : null}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-5 h-11 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            {submitting ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
-      </div>
-    );
+  if (authState === "unauthenticated") {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!roleAllowed) {
+  if (
+    normalizedAllowedRoles.length > 0 &&
+    !normalizedAllowedRoles.includes(resolvedRole) &&
+    !GLOBAL_ACCESS_ROLES.has(resolvedRole)
+  ) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-2xl rounded-2xl border bg-card p-6 text-center shadow-sm">
-          <h2 className="text-lg font-bold text-foreground">Restricted Access</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Your role ({userRole ?? "unknown"}) cannot access this screen.
+      <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fb_54%,#f8fafc_100%)] px-4">
+        <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white/80 p-8 text-center shadow-sm backdrop-blur">
+          <h1 className="text-3xl font-black text-[#0d2c54]">Restricted Access</h1>
+          <p className="mt-3 text-base text-slate-500">
+            Your role ({resolvedRole || "unknown"}) cannot access this screen.
           </p>
         </div>
       </div>
@@ -125,3 +151,5 @@ export function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
 
   return <>{children}</>;
 }
+
+export default PrivateRoute;
