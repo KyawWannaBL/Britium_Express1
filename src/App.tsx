@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { Sidebar } from "./components/Sidebar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -21,9 +22,13 @@ import CustomerPortal from "./pages/CustomerPortal";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex h-screen w-full overflow-hidden bg-background">
-    <Sidebar />
-    <main className="flex-1 overflow-y-auto p-8">{children}</main>
+  <div className="app-shell-bg flex min-h-screen w-full overflow-hidden bg-background">
+    <div className="shrink-0">
+      <Sidebar />
+    </div>
+    <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-8">
+      {children}
+    </main>
   </div>
 );
 
@@ -35,20 +40,130 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
-          <Route path="/create-delivery" element={<Layout><CreateDelivery /></Layout>} />
-          <Route path="/way-management" element={<Layout><WayManagement /></Layout>} />
-          <Route path="/customer-service" element={<Layout><CustomerServicePortal /></Layout>} />
-          <Route path="/customer" element={<Layout><CustomerPortal /></Layout>} />
-          <Route path="/supervisor" element={<Layout><SupervisorPortal /></Layout>} />
-          <Route path="/data-entry" element={<Layout><DataEntryPortal /></Layout>} />
-          <Route path="/deliverymen" element={<Layout><Deliverymen /></Layout>} />
-          <Route path="/merchants" element={<Layout><Merchants /></Layout>} />
-          <Route path="/receipts" element={<Layout><Receipts /></Layout>} />
-          <Route path="/reporting" element={<Layout><Reporting /></Layout>} />
-          <Route path="/settings" element={<Layout><Settings /></Layout>} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/create-delivery"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <CreateDelivery />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/way-management"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <WayManagement />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customer-service"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <CustomerServicePortal />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customer"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <CustomerPortal />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/supervisor"
+            element={
+              <PrivateRoute allowedRoles={["super_admin", "admin", "supervisor"]}>
+                <Layout>
+                  <SupervisorPortal />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/data-entry"
+            element={
+              <PrivateRoute allowedRoles={["super_admin", "admin", "data_entry"]}>
+                <Layout>
+                  <DataEntryPortal />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/deliverymen"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Deliverymen />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/merchants"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Merchants />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/receipts"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Receipts />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/reporting"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Reporting />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute allowedRoles={["super_admin", "admin"]}>
+                <Layout>
+                  <Settings />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   AlertCircle,
   ArrowLeft,
@@ -72,10 +73,10 @@ function defaultPortalForRole(role?: string | null) {
   if (["SUPERVISOR", "SUPERVISOR_HUB"].includes(r)) return "/supervisor";
   if (["DATA_ENTRY"].includes(r)) return "/data-entry";
   if (["MERCHANT", "MERCHANT_ADMIN", "MERCHANT_OWNER", "MERCHANT_MANAGER"].includes(r)) {
-    return "/merchants";
+    return "/merchant";
   }
 
-  return "/";
+  return "/dashboard";
 }
 
 async function loadProfile(userId: string) {
@@ -108,7 +109,8 @@ async function loadProfile(userId: string) {
 
 async function hasAal2() {
   try {
-    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const { data, error } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (error) return false;
     return data?.currentLevel === "aal2";
   } catch {
@@ -119,6 +121,7 @@ async function hasAal2() {
 export default function Login() {
   const nav = useNavigate();
   const loc = useLocation() as any;
+  const auth = useAuth();
 
   const [language, setLanguage] = useState<Language>("en");
   const t = (en: string, my: string) => (language === "en" ? en : my);
@@ -139,7 +142,7 @@ export default function Login() {
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [targetPath, setTargetPath] = useState<string>("/");
+  const [targetPath, setTargetPath] = useState<string>("/dashboard");
 
   const [mfaStage, setMfaStage] = useState<"idle" | "enroll" | "verify">("idle");
   const [mfaFactorId, setMfaFactorId] = useState("");
@@ -160,10 +163,18 @@ export default function Login() {
   );
 
   const pageTitle = useMemo(() => {
-    if (view === "forgot") return t("Secure Password Recovery", "စကားဝှက် ပြန်လည်ရယူခြင်း");
-    if (view === "request") return t("Request Access", "ဝင်ရောက်ခွင့် တောင်းမည်");
-    if (view === "force_change") return t("Security Update Required", "လုံခြုံရေး အပ်ဒိတ် လိုအပ်");
-    if (view === "mfa") return t("Multi-Factor Verification", "အဆင့်မြင့် အတည်ပြုခြင်း (MFA)");
+    if (view === "forgot") {
+      return t("Secure Password Recovery", "စကားဝှက် ပြန်လည်ရယူခြင်း");
+    }
+    if (view === "request") {
+      return t("Request Access", "ဝင်ရောက်ခွင့် တောင်းမည်");
+    }
+    if (view === "force_change") {
+      return t("Security Update Required", "လုံခြုံရေး အပ်ဒိတ် လိုအပ်");
+    }
+    if (view === "mfa") {
+      return t("Multi-Factor Verification", "အဆင့်မြင့် အတည်ပြုခြင်း (MFA)");
+    }
     return t("Sign in", "အကောင့်ဝင်မည်");
   }, [view, language]);
 
@@ -235,9 +246,10 @@ export default function Login() {
         return;
       }
 
-      const { data: enroll, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-      });
+      const { data: enroll, error: enrollError } =
+        await supabase.auth.mfa.enroll({
+          factorType: "totp",
+        });
 
       if (enrollError) throw enrollError;
 
@@ -305,7 +317,7 @@ export default function Login() {
       if (!ok) throw new Error("MFA verification incomplete.");
 
       setSuccessMsg(t("MFA verified. Redirecting…", "MFA အောင်မြင်ပါပြီ။ ဆက်သွားနေသည်…"));
-      setTimeout(() => nav(targetPath || "/", { replace: true }), 400);
+      setTimeout(() => nav(targetPath || "/dashboard", { replace: true }), 400);
     } catch (e: any) {
       setErrorMsg(e?.message || t("Invalid code.", "Code မမှန်ပါ။"));
     } finally {
@@ -350,6 +362,7 @@ export default function Login() {
 
         nav(dst, { replace: true });
       } catch {
+        // ignore boot auth errors
       }
     })();
   }, []);
@@ -379,6 +392,8 @@ export default function Login() {
       });
 
       if (error) throw error;
+
+      await auth.refresh?.();
 
       const profile = await loadProfile(data.user.id);
       const dst = defaultPortalForRole(profile.role);
@@ -414,7 +429,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const emailRedirectTo = `${window.location.origin}/login`;
+      const emailRedirectTo = `${window.location.origin}/#/login`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo },
@@ -460,6 +475,8 @@ export default function Login() {
 
       if (error) throw error;
 
+      await auth.refresh?.();
+
       const { data } = await supabase.auth.getSession();
       if (!data?.session?.user?.id) throw new Error("No session.");
 
@@ -487,7 +504,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/reset-password`;
+      const redirectTo = `${window.location.origin}/#/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
       });
@@ -580,7 +597,10 @@ export default function Login() {
           })
           .eq("id", data.user.id);
       } catch {
+        // ignore profile flag update errors
       }
+
+      await auth.refresh?.();
 
       const profile = await loadProfile(data.user.id);
       const passed = await ensureMfa(profile.role);
@@ -604,10 +624,11 @@ export default function Login() {
   }
 
   const canPrev = showWizardNav && !loading;
-  const canNext = showWizardNav && wizardIndex < wizardViews.length - 1 && !loading;
+  const canNext =
+    showWizardNav && wizardIndex < wizardViews.length - 1 && !loading;
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#05080F] p-4 text-slate-100">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#05080F] p-4 text-slate-100">
       {!videoFailed ? (
         <video
           autoPlay
@@ -615,7 +636,7 @@ export default function Login() {
           muted
           playsInline
           onError={() => setVideoFailed(true)}
-          className="absolute inset-0 h-full w-full object-cover opacity-20 pointer-events-none grayscale"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20 grayscale"
         >
           <source src="/background.mp4" type="video/mp4" />
         </video>
@@ -624,21 +645,21 @@ export default function Login() {
       <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_20%,rgba(16,185,129,0.16),transparent_60%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,8,15,0.65),rgba(5,8,15,0.95))]" />
 
-      <div className="absolute top-6 right-6 z-20">
+      <div className="absolute right-6 top-6 z-20">
         <button
           type="button"
           onClick={toggleLanguage}
           className="inline-flex items-center rounded-full border border-white/10 bg-black/40 px-4 py-2 text-slate-200 hover:bg-white/5"
         >
           <Globe className="mr-2 h-4 w-4" />
-          <span className="text-xs font-black tracking-widest uppercase">
+          <span className="text-xs font-black uppercase tracking-widest">
             {language === "en" ? "MY" : "EN"}
           </span>
         </button>
       </div>
 
       <div className="relative z-10 w-full max-w-md space-y-6 py-12">
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <div className="mx-auto grid h-28 w-28 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl">
             {!logoFailed ? (
               <img
@@ -694,7 +715,9 @@ export default function Login() {
                 {successMsg ? (
                   <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-300">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-                    <p className="text-xs font-bold leading-relaxed">{successMsg}</p>
+                    <p className="text-xs font-bold leading-relaxed">
+                      {successMsg}
+                    </p>
                   </div>
                 ) : null}
 
@@ -851,7 +874,11 @@ export default function Login() {
                       disabled={loading}
                       className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#D4AF37] font-black uppercase tracking-widest text-black shadow-xl transition-all hover:bg-[#b5952f] disabled:opacity-70"
                     >
-                      {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("Send Link", "Link ပို့မည်")}
+                      {loading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        t("Send Link", "Link ပို့မည်")
+                      )}
                     </button>
                   </form>
                 ) : null}
