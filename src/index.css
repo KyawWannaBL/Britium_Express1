@@ -228,3 +228,34 @@
   background-position: center, center, center;
   background-repeat: no-repeat;
 }
+
+
+.app-shell-bg {
+  background:
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.10), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.12), transparent 28%),
+    linear-gradient(180deg, #06111f 0%, #0a1830 52%, #0c1d35 100%);
+}
+
+
+
+.britium-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+.britium-sidebar-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.britium-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.britium-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+

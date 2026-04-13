@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import { supabase } from "@/lib/supabase/client";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sidebar } from "./components/Sidebar";
@@ -34,12 +37,47 @@ import LiveTrackingScreen from "../features/production-delivery/screens/LiveTrac
 
 const queryClient = new QueryClient();
 
+function RootRedirect() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSession(data.session ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  if (session === undefined) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#05080F_0%,#0B1B34_100%)] text-white">
+        <div className="rounded-3xl border border-white/10 bg-white/5 px-8 py-5 text-sm font-semibold backdrop-blur">
+          Loading Britium Express...
+        </div>
+      </div>
+    );
+  }
+
+  return <Navigate to={session?.user ? "/dashboard" : "/login"} replace />;
+}
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="app-shell-bg flex min-h-screen w-full overflow-hidden">
+      <div className="app-shell-bg flex h-screen w-full overflow-hidden">
         <Sidebar />
-        <SidebarInset>
+        <SidebarInset className="min-w-0 overflow-hidden">
           <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-white/10 bg-[#07111f]/80 px-4 backdrop-blur">
             <SidebarTrigger className="text-white hover:bg-white/10 hover:text-white" />
             <div className="flex items-center gap-3">
@@ -62,7 +100,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="min-h-[calc(100vh-4rem)] p-4 md:p-8">
+          <main className="h-[calc(100vh-4rem)] overflow-y-auto p-4 md:p-8">
             {children}
           </main>
         </SidebarInset>
@@ -78,10 +116,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
 
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -90,7 +129,6 @@ const App = () => (
               </PrivateRoute>
             }
           />
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
           <Route
             path="/create-delivery"
@@ -139,7 +177,7 @@ const App = () => (
           <Route
             path="/supervisor"
             element={
-              <PrivateRoute allowedRoles={["super_admin", "admin", "supervisor"]}>
+              <PrivateRoute allowedRoles={["super_admin", "admin", "supervisor", "SYS", "DSP", "HSP", "BMG", "ROM"]}>
                 <AppLayout>
                   <SupervisorPortal />
                 </AppLayout>
@@ -150,7 +188,7 @@ const App = () => (
           <Route
             path="/data-entry"
             element={
-              <PrivateRoute allowedRoles={["super_admin", "admin", "data_entry"]}>
+              <PrivateRoute allowedRoles={["super_admin", "admin", "data_entry", "SYS", "HSC", "HSP"]}>
                 <AppLayout>
                   <DataEntryPortal />
                 </AppLayout>
@@ -205,7 +243,7 @@ const App = () => (
           <Route
             path="/settings"
             element={
-              <PrivateRoute allowedRoles={["super_admin", "admin"]}>
+              <PrivateRoute allowedRoles={["super_admin", "admin", "SYS", "CAP", "AUD", "BMG", "ROM"]}>
                 <AppLayout>
                   <Settings />
                 </AppLayout>
@@ -312,7 +350,7 @@ const App = () => (
             }
           />
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
