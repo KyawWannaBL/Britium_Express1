@@ -25,6 +25,9 @@ import {
   ClipboardList,
   MapPinned,
   Camera,
+  UserCircle2, // Added
+  HandCoins, // Added
+  BriefcaseBusiness, // Added
 } from "lucide-react";
 
 import { useEnhancedAuth } from "@/hooks/useEnhancedAuth";
@@ -50,6 +53,9 @@ type NavItem = {
 
 const coreNav: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Profile", url: "/profile", icon: IdCard },
+  { title: "Profile", url: "/profile", icon: UserCircle2 }, // Added
+  { title: "Wallet Hub", url: "/wallet", icon: HandCoins }, // Added
   { title: "Create Delivery", url: "/create-delivery", icon: Package },
   { title: "Way Management", url: "/way-management", icon: Map },
 ];
@@ -58,7 +64,9 @@ const managementNav: NavItem[] = [
   { title: "Customer Service", url: "/customer-service", icon: Headset },
   { title: "Supervisor", url: "/supervisor", icon: ShieldCheck },
   { title: "Data Entry", url: "/data-entry", icon: Database },
-  { title: "Branch Office", url: "/branch-office", icon: Building2 },
+  { title: "Branch Office", url: "/branch-office", icon: Building2 }, // Already present
+  { title: "Admin (Operations)", url: "/admin/operations", icon: BriefcaseBusiness }, // Added
+  { title: "Admin (HR & Admin)", url: "/admin/hr-admin", icon: Users }, // Added
   { title: "Deliverymen", url: "/deliverymen", icon: Users },
   { title: "Receipts", url: "/receipts", icon: FileText },
   { title: "Reporting", url: "/reporting", icon: BarChart3 },
@@ -68,12 +76,15 @@ const managementNav: NavItem[] = [
 const customerNav: NavItem[] = [
   { title: "Customer Portal", url: "/customer", icon: UserSquare2 },
   { title: "Live Tracking", url: "/production/live-tracking", icon: MapPinned },
+  { title: "Customer Wallet", url: "/wallet/customer", icon: HandCoins },
 ];
 
 const merchantNav: NavItem[] = [
   { title: "Merchants", url: "/merchants", icon: Store },
   { title: "Enterprise Delivery", url: "/production/create-delivery", icon: Package },
   { title: "Live Tracking", url: "/production/live-tracking", icon: Activity },
+  { title: "Branch Wallet", url: "/wallet/branch", icon: HandCoins },
+  { title: "Merchant Wallet", url: "/wallet/merchant", icon: HandCoins },
 ];
 
 const riderNav: NavItem[] = [
@@ -81,8 +92,10 @@ const riderNav: NavItem[] = [
   { title: "Delivery Execution", url: "/production/delivery-execution", icon: Truck },
   { title: "Focused Way List", url: "/production/focused-way-list", icon: Boxes },
   { title: "Live Tracking", url: "/production/live-tracking", icon: MapPinned },
+  { title: "Customer Wallet", url: "/wallet/customer", icon: HandCoins },
   { title: "Photo Evidence", url: "/production/delivery-execution", icon: Camera },
   { title: "Signature Pad", url: "/production/delivery-execution", icon: PenTool },
+  { title: "Rider Wallet", url: "/wallet/rider", icon: HandCoins },
 ];
 
 const warehouseNav: NavItem[] = [
@@ -90,6 +103,7 @@ const warehouseNav: NavItem[] = [
   { title: "QR / Barcode Intake", url: "/production/parcel-intake", icon: QrCode },
   { title: "OCR Workbench", url: "/production/ocr-workbench", icon: FileText },
   { title: "Warehouse Execution", url: "/production/warehouse-execution", icon: Warehouse },
+  { title: "Warehouse Controller", url: "/warehouse/controller", icon: Warehouse }, // Added
   { title: "Way Command Center", url: "/production/way-management", icon: Route },
 ];
 
@@ -103,6 +117,7 @@ const superNav: NavItem[] = [
   { title: "Parcel Intake", url: "/production/parcel-intake", icon: ScanLine },
   { title: "OCR Workbench", url: "/production/ocr-workbench", icon: FileText },
   { title: "Live Tracking", url: "/production/live-tracking", icon: Activity },
+  { title: "Merchant Wallet", url: "/wallet/merchant", icon: HandCoins },
 ];
 
 function hasRole(role: string, list: string[]) {
