@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   BookOpen,
@@ -19,12 +20,9 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { createBrowserClient } from "@supabase/ssr";
 
 type UiLanguage = "en" | "my" | "both";
 type ToastTone = "ok" | "warn" | "err";
-
-// type AllowedRole removed (was unused)
 
 type TicketStatus =
   | "OPEN"
@@ -125,6 +123,8 @@ type ActionForm = {
   nextContactAt: string;
 };
 
+const SUPERADMIN_EMAILS = new Set(["md@britiumexpress.com"]);
+
 const ACCESS_ROLE_TOKENS = new Set<string>([
   "SYS",
   "SUPER_ADMIN",
@@ -139,6 +139,13 @@ const ACCESS_ROLE_TOKENS = new Set<string>([
   "CALL_CENTER_AGENT",
   "NDR_AGENT",
   "NDR_SUPERVISOR",
+  "CSA",
+  "CCA",
+  "CSH",
+  "DSP",
+  "HSP",
+  "BMG",
+  "ROM",
 ]);
 
 const ACCESS_PERMISSION_TOKENS = new Set<string>([
@@ -157,6 +164,10 @@ const PRIVILEGED_ACTION_ROLE_TOKENS = new Set<string>([
   "SUPERVISOR",
   "CUSTOMER_SERVICE_MANAGER",
   "NDR_SUPERVISOR",
+  "DSP",
+  "HSP",
+  "BMG",
+  "ROM",
 ]);
 
 function t(language: UiLanguage, en: string, my: string) {
@@ -193,14 +204,15 @@ function toAuthUserCandidate(raw: unknown): Partial<AuthUser> | null {
     roleCode: typeof roleCode === "string" ? roleCode : undefined,
     roles: mergeUnique(
       asStringArray(obj.roles),
-      mergeUnique(asStringArray(obj.userRoles), mergeUnique(asStringArray(role), asStringArray(roleCode))),
+      mergeUnique(asStringArray(obj.userRoles), mergeUnique(asStringArray(role), asStringArray(roleCode)))
     ),
     permissions: mergeUnique(
       asStringArray(obj.permissions),
-      mergeUnique(asStringArray(obj.permission), mergeUnique(asStringArray(obj.scopes), asStringArray(obj.scope))),
+      mergeUnique(asStringArray(obj.permission), mergeUnique(asStringArray(obj.scopes), asStringArray(obj.scope)))
     ),
     branchType: obj.branchType ?? obj.branch_type ?? obj.branch?.type ?? obj.officeType ?? obj.orgType,
-    displayName: obj.displayName ?? obj.display_name ?? obj.fullName ?? obj.full_name ?? obj.name ?? obj.email,
+    displayName:
+      obj.displayName ?? obj.display_name ?? obj.fullName ?? obj.full_name ?? obj.name ?? obj.email,
     name: obj.name,
     fullName: obj.fullName ?? obj.full_name,
   };
@@ -269,7 +281,7 @@ function getRoleTokens(user: AuthUser) {
   return new Set(
     [user.role, user.roleCode, ...(user.roles ?? [])]
       .map((item) => normalizeToken(item))
-      .filter(Boolean),
+      .filter(Boolean)
   );
 }
 
@@ -277,7 +289,13 @@ function getPermissionTokens(user: AuthUser) {
   return new Set((user.permissions ?? []).map((item) => normalizeToken(item)).filter(Boolean));
 }
 
+function isSuperadminEmail(email?: string | null) {
+  return SUPERADMIN_EMAILS.has((email ?? "").toLowerCase());
+}
+
 function canAccessCustomerService(user: AuthUser) {
+  if (isSuperadminEmail(user.email)) return true;
+
   const roleTokens = getRoleTokens(user);
   const permissionTokens = getPermissionTokens(user);
 
@@ -288,6 +306,7 @@ function canAccessCustomerService(user: AuthUser) {
 }
 
 function canRunPrivilegedAction(user: AuthUser) {
+  if (isSuperadminEmail(user.email)) return true;
   const roleTokens = getRoleTokens(user);
   return [...roleTokens].some((token) => PRIVILEGED_ACTION_ROLE_TOKENS.has(token));
 }
@@ -335,10 +354,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (parsed?.data ?? parsed) as T;
 }
 
-async function fetchAuthUserFromProfiles(
-  supabase: any,
-  userId: string,
-): Promise<Partial<AuthUser> | null> {
+async function fetchAuthUserFromProfiles(userId: string): Promise<Partial<AuthUser> | null> {
   const tables = ["profiles", "user_profiles", "staff_profiles", "employees"];
   const idFields = ["id", "user_id", "auth_user_id"];
   const selectColumns =
@@ -358,7 +374,7 @@ async function fetchAuthUserFromProfiles(
           if (extracted) return extracted;
         }
       } catch {
-        // ignore
+        // ignore table drift
       }
     }
   }
@@ -367,12 +383,6 @@ async function fetchAuthUserFromProfiles(
 }
 
 async function resolveAuthUserFromSupabase(): Promise<AuthUser> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) return {};
-
-  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
   let resolved: AuthUser = {};
 
   try {
@@ -389,8 +399,17 @@ async function resolveAuthUserFromSupabase(): Promise<AuthUser> {
         !(resolved.permissions && resolved.permissions.length > 0)) &&
       user.id
     ) {
-      const fromProfiles = await fetchAuthUserFromProfiles(supabase, user.id);
+      const fromProfiles = await fetchAuthUserFromProfiles(user.id);
       resolved = mergeAuthUser(resolved, fromProfiles);
+    }
+
+    if (isSuperadminEmail(resolved.email)) {
+      resolved = mergeAuthUser(resolved, {
+        role: "SYS",
+        roleCode: "SYS",
+        roles: ["SYS", "SUPER_ADMIN", ...(resolved.roles ?? [])],
+        permissions: ["ALL", "CUSTOMER_SERVICE_ALL", ...(resolved.permissions ?? [])],
+      });
     }
 
     return resolved;
@@ -407,7 +426,7 @@ function emptyActionForm(): ActionForm {
   };
 }
 
-export default function CustomerServicePortalPage() {
+export default function CustomerServicePortal() {
   const [authUser, setAuthUser] = useState<AuthUser>({});
   const [authReady, setAuthReady] = useState(false);
 
@@ -490,13 +509,6 @@ export default function CustomerServicePortalPage() {
   }, []);
 
   useEffect(() => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) return;
-
-    const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async () => {
@@ -552,7 +564,7 @@ export default function CustomerServicePortalPage() {
 
   const selectedTicket = useMemo(
     () => tickets.find((ticket) => ticket.id === selectedTicketId) ?? null,
-    [selectedTicketId, tickets],
+    [selectedTicketId, tickets]
   );
 
   const filteredArticles = useMemo(() => {
@@ -560,7 +572,7 @@ export default function CustomerServicePortalPage() {
     if (!q) return articles.slice(0, 6);
 
     return articles.filter((article) =>
-      [article.title, article.category, article.body].join(" ").toLowerCase().includes(q),
+      [article.title, article.category, article.body].join(" ").toLowerCase().includes(q)
     );
   }, [articles, query]);
 
@@ -576,7 +588,7 @@ export default function CustomerServicePortalPage() {
     setLookupLoading(true);
     try {
       const results = await fetchJson<CustomerLookupResult[]>(
-        `/api/v1/customer-service/customer-lookup?query=${encodeURIComponent(lookupQuery.trim())}`,
+        `/api/v1/customer-service/customer-lookup?query=${encodeURIComponent(lookupQuery.trim())}`
       );
       setLookupResults(results);
     } catch (e) {
@@ -625,7 +637,7 @@ export default function CustomerServicePortalPage() {
             nextContactAt: actionForm.nextContactAt || null,
             actorName,
           }),
-        },
+        }
       );
 
       setTickets((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
@@ -645,7 +657,7 @@ export default function CustomerServicePortalPage() {
   if (!authReady) {
     return (
       <div className="min-h-screen bg-[#f7f9fc] p-8">
-        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm text-sm text-slate-500">
+        <div className="rounded-[32px] border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
           Checking access...
         </div>
       </div>
@@ -668,6 +680,9 @@ export default function CustomerServicePortalPage() {
                 This portal is only for authorized customer service, call center, NDR,
                 supervisor, admin, and system users.
               </p>
+              <p className="mt-2 text-xs text-slate-400">
+                Signed in as: {authUser.email || "unknown"} · role: {authUser.roleCode || authUser.role || "unknown"}
+              </p>
             </div>
           </div>
         </div>
@@ -684,15 +699,13 @@ export default function CustomerServicePortalPage() {
           </p>
           <h1 className="text-4xl font-black uppercase tracking-tight text-[#0d2c54]">
             Customer Service Portal{" "}
-            <span className="font-normal text-blue-500">
-              / ဖောက်သည်ဝန်ဆောင်မှု ပေါ်တယ်
-            </span>
+            <span className="font-normal text-blue-500">/ ဖောက်သည်ဝန်ဆောင်မှု ပေါ်တယ်</span>
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             {t(
               language,
               "Live customer support queue, NDR handling, customer lookup, and resolution actions using real operational data.",
-              "Live customer support queue, NDR handling, customer lookup နှင့် ဖြေရှင်းဆောင်ရွက်မှုများကို တကယ့်လုပ်ငန်း data ဖြင့် အသုံးပြုနိုင်သော portal ဖြစ်သည်။",
+              "Live customer support queue, NDR handling, customer lookup နှင့် ဖြေရှင်းဆောင်ရွက်မှုများကို တကယ့်လုပ်ငန်း data ဖြင့် အသုံးပြုနိုင်သော portal ဖြစ်သည်။"
             )}
           </p>
         </div>
@@ -858,13 +871,19 @@ export default function CustomerServicePortalPage() {
                     { label: t(language, "Customer", "Customer"), value: selectedTicket.customerName },
                     { label: t(language, "Phone", "ဖုန်း"), value: selectedTicket.customerPhone },
                     { label: t(language, "Alternate Phone", "အခြားဖုန်း"), value: selectedTicket.alternatePhone ?? "-" },
-                    { label: t(language, "Location", "တည်နေရာ"), value: [selectedTicket.city, selectedTicket.township].filter(Boolean).join(" / ") || "-" },
+                    {
+                      label: t(language, "Location", "တည်နေရာ"),
+                      value: [selectedTicket.city, selectedTicket.township].filter(Boolean).join(" / ") || "-",
+                    },
                     { label: t(language, "Branch", "ဌာနခွဲ"), value: selectedTicket.branchName ?? "-" },
                     { label: t(language, "Assigned Agent", "တာဝန်ပေးထားသော Agent"), value: selectedTicket.assignedAgent ?? "-" },
                     { label: t(language, "Subject", "ခေါင်းစဉ်"), value: selectedTicket.subject },
                     { label: t(language, "Reason Code", "အကြောင်းပြချက်ကုဒ်"), value: selectedTicket.reasonCode ?? "-" },
                     { label: t(language, "Last Status", "နောက်ဆုံးအခြေအနေ"), value: selectedTicket.lastStatus ?? "-" },
-                    { label: t(language, "Delivery Attempts", "ပို့ဆောင်ကြိမ်"), value: String(selectedTicket.deliveryAttemptCount ?? 0) },
+                    {
+                      label: t(language, "Delivery Attempts", "ပို့ဆောင်ကြိမ်"),
+                      value: String(selectedTicket.deliveryAttemptCount ?? 0),
+                    },
                   ]}
                 />
 
@@ -872,9 +891,7 @@ export default function CustomerServicePortalPage() {
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
                     {t(language, "Latest Note", "နောက်ဆုံးမှတ်ချက်")}
                   </div>
-                  <div className="mt-2 text-sm text-slate-600">
-                    {selectedTicket.latestNote || "-"}
-                  </div>
+                  <div className="mt-2 text-sm text-slate-600">{selectedTicket.latestNote || "-"}</div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -892,13 +909,9 @@ export default function CustomerServicePortalPage() {
                         <div key={activity.id} className="rounded-2xl bg-slate-50 p-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="font-semibold text-slate-700">{activity.type}</div>
-                            <div className="text-xs text-slate-400">
-                              {formatDateTime(activity.createdAt)}
-                            </div>
+                            <div className="text-xs text-slate-400">{formatDateTime(activity.createdAt)}</div>
                           </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {activity.actorName || "-"}
-                          </div>
+                          <div className="mt-1 text-xs text-slate-500">{activity.actorName || "-"}</div>
                           <div className="mt-2 text-sm text-slate-600">{activity.note || "-"}</div>
                         </div>
                       ))
@@ -930,9 +943,6 @@ export default function CustomerServicePortalPage() {
 
             <div className="mt-5 grid gap-4">
               <div>
-                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
-                  {t(language, "Action Type", "ဆောင်ရွက်မှုအမျိုးအစား")}
-                </label>
                 <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500" htmlFor="actionTypeSelect">
                   {t(language, "Action Type", "ဆောင်ရွက်မှုအမျိုးအစား")}
                 </label>
@@ -960,7 +970,7 @@ export default function CustomerServicePortalPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500" htmlFor="nextContactAtInput">
                   {t(language, "Next Contact Time", "နောက်တစ်ကြိမ်ဆက်သွယ်မည့်အချိန်")}
                 </label>
                 <input
@@ -976,10 +986,11 @@ export default function CustomerServicePortalPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500" htmlFor="actionNoteTextarea">
                   {t(language, "Action Note", "ဆောင်ရွက်မှုမှတ်ချက်")}
                 </label>
                 <textarea
+                  id="actionNoteTextarea"
                   value={actionForm.note}
                   onChange={(e) =>
                     setActionForm((prev) => ({ ...prev, note: e.target.value }))
@@ -1088,9 +1099,7 @@ export default function CustomerServicePortalPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="font-black text-[#0d2c54]">{article.title}</div>
-                      <div className="mt-1 text-xs uppercase tracking-wider text-slate-400">
-                        {article.category}
-                      </div>
+                      <div className="mt-1 text-xs uppercase tracking-wider text-slate-400">{article.category}</div>
                     </div>
                     <div className="text-xs text-slate-400">{formatDateTime(article.updatedAt)}</div>
                   </div>
@@ -1155,7 +1164,6 @@ function LanguageToggle({
   );
 }
 
-import type { LucideIcon } from "lucide-react";
 function StatCard({
   icon: Icon,
   title,

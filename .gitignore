@@ -108,3 +108,5 @@ uploaded_files/
 *.bak.*
 supabase/.temp/
 public/assets/
+
+supabase/.temp/
