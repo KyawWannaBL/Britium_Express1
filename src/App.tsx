@@ -1,15 +1,16 @@
-import React, { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import { supabase } from "@/lib/supabase/client";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sidebar } from "./components/Sidebar";
 
-// Core pages
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CreateDelivery from "./pages/CreateDelivery";
@@ -24,22 +25,6 @@ import DataEntryPortal from "./pages/DataEntryPortal";
 import CustomerServicePortal from "./pages/CustomerServicePortal";
 import CustomerPortal from "./pages/CustomerPortal";
 
-// Enterprise workspaces
-import {
-  ProfileDashboardPage,
-  WalletHubPage,
-  CustomerWalletPage,
-  MerchantWalletPage,
-  FinanceWalletPage,
-  RiderWalletPage,
-  BranchWalletPage,
-  AdminOperationsPortalPage,
-  HRAdminPortalPage,
-  WarehouseControllerPortalPage,
-  BranchOfficePortalPage,
-} from "./pages/EnterpriseWorkspaces";
-
-// Production delivery suite
 import CreateDeliveryScreen from "../features/production-delivery/screens/CreateDeliveryScreen";
 import PickupExecutionScreen from "../features/production-delivery/screens/PickupExecutionScreen";
 import WarehouseExecutionScreen from "../features/production-delivery/screens/WarehouseExecutionScreen";
@@ -52,86 +37,42 @@ import LiveTrackingScreen from "../features/production-delivery/screens/LiveTrac
 
 const queryClient = new QueryClient();
 
-const ROLE_SUPER = ["super_admin", "admin", "SYS", "SUPER_ADMIN", "ADMIN"];
+function RootRedirect() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
 
-const ROLE_OPERATIONS = [
-  ...ROLE_SUPER,
-  "operations_admin",
-  "OPS_ADMIN",
-  "ROM",
-  "BMG",
-  "DSP",
-  "HSP",
-  "SUPERVISOR",
-  "supervisor",
-];
+  useEffect(() => {
+    let mounted = true;
 
-const ROLE_HR_ADMIN = [
-  ...ROLE_SUPER,
-  "HRM",
-  "HRO",
-  "hr_admin",
-  "HR_ADMIN",
-];
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSession(data.session ?? null);
+    });
 
-const ROLE_WAREHOUSE = [
-  ...ROLE_SUPER,
-  "warehouse_controller",
-  "WAREHOUSE_CONTROLLER",
-  "HSC",
-  "HSP",
-  "data_entry",
-  "DATA_ENTRY",
-];
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null);
+    });
 
-const ROLE_BRANCH = [
-  ...ROLE_SUPER,
-  "branch_manager",
-  "branch_admin",
-  "branch_supervisor",
-  "branch_office",
-  "BRANCH_MANAGER",
-  "BRANCH_ADMIN",
-  "BRANCH_SUPERVISOR",
-  "BRANCH_OFFICE",
-  "BMG",
-  "ROM",
-];
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
-const ROLE_FINANCE = [
-  ...ROLE_SUPER,
-  "finance",
-  "finance_admin",
-  "finance_manager",
-  "FINM",
-  "BIL",
-  "AR",
-];
+  if (session === undefined) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#05080F_0%,#0B1B34_100%)] text-white">
+        <div className="rounded-3xl border border-white/10 bg-white/5 px-8 py-5 text-sm font-semibold backdrop-blur">
+          Loading Britium Express...
+        </div>
+      </div>
+    );
+  }
 
-const ROLE_CUSTOMER_WALLET = [...ROLE_SUPER, "customer", "CUS"];
+  return <Navigate to={session?.user ? "/dashboard" : "/login"} replace />;
+}
 
-const ROLE_MERCHANT_WALLET = [
-  ...ROLE_SUPER,
-  "merchant",
-  "MER",
-  "merchant_admin",
-  "MERCHANT_ADMIN",
-  "merchant_manager",
-  "MERCHANT_MANAGER",
-];
-
-const ROLE_RIDER_WALLET = [
-  ...ROLE_SUPER,
-  "rider",
-  "driver",
-  "helper",
-  "CUR",
-  "RIDER",
-  "DRIVER",
-  "HELPER",
-];
-
-function AppLayout({ children }: { children: ReactNode }) {
+function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="enterprise-shell flex h-screen w-full overflow-hidden">
@@ -144,6 +85,9 @@ function AppLayout({ children }: { children: ReactNode }) {
                 src="/logo.png"
                 alt="Britium Express"
                 className="h-9 w-9 rounded-xl object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
               />
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">
@@ -172,7 +116,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
 
           <Route
@@ -185,19 +129,6 @@ const App = () => (
               </PrivateRoute>
             }
           />
-
-          <Route
-            path="/profile"
-            element={
-              <PrivateRoute>
-                <AppLayout>
-                  <ProfileDashboardPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route path="/profile/activity" element={<Navigate to="/profile" replace />} />
 
           <Route
             path="/create-delivery"
@@ -224,32 +155,7 @@ const App = () => (
           <Route
             path="/customer-service"
             element={
-              <PrivateRoute
-                allowedRoles={[
-                  ...ROLE_SUPER,
-                  "customer_service",
-                  "customer_service_agent",
-                  "customer_service_manager",
-                  "call_center",
-                  "call_center_agent",
-                  "ndr_agent",
-                  "ndr_supervisor",
-                  "CUSTOMER_SERVICE",
-                  "CUSTOMER_SERVICE_AGENT",
-                  "CUSTOMER_SERVICE_MANAGER",
-                  "CALL_CENTER",
-                  "CALL_CENTER_AGENT",
-                  "NDR_AGENT",
-                  "NDR_SUPERVISOR",
-                  "CSA",
-                  "CCA",
-                  "CSH",
-                  "DSP",
-                  "HSP",
-                  "BMG",
-                  "ROM",
-                ]}
-              >
+              <PrivateRoute>
                 <AppLayout>
                   <CustomerServicePortal />
                 </AppLayout>
@@ -271,7 +177,18 @@ const App = () => (
           <Route
             path="/supervisor"
             element={
-              <PrivateRoute allowedRoles={[...ROLE_OPERATIONS, "supervisor"]}>
+              <PrivateRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                  "supervisor",
+                  "SYS",
+                  "DSP",
+                  "HSP",
+                  "BMG",
+                  "ROM",
+                ]}
+              >
                 <AppLayout>
                   <SupervisorPortal />
                 </AppLayout>
@@ -282,7 +199,16 @@ const App = () => (
           <Route
             path="/data-entry"
             element={
-              <PrivateRoute allowedRoles={[...ROLE_WAREHOUSE, "data_entry"]}>
+              <PrivateRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                  "data_entry",
+                  "SYS",
+                  "HSC",
+                  "HSP",
+                ]}
+              >
                 <AppLayout>
                   <DataEntryPortal />
                 </AppLayout>
@@ -337,119 +263,19 @@ const App = () => (
           <Route path="/reports" element={<Navigate to="/reporting" replace />} />
 
           <Route
-            path="/wallet"
-            element={
-              <PrivateRoute>
-                <AppLayout>
-                  <WalletHubPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/wallet/customer"
-            element={
-              <PrivateRoute allowedRoles={ROLE_CUSTOMER_WALLET}>
-                <AppLayout>
-                  <CustomerWalletPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/wallet/merchant"
-            element={
-              <PrivateRoute allowedRoles={ROLE_MERCHANT_WALLET}>
-                <AppLayout>
-                  <MerchantWalletPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/wallet/finance"
-            element={
-              <PrivateRoute allowedRoles={ROLE_FINANCE}>
-                <AppLayout>
-                  <FinanceWalletPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/wallet/rider"
-            element={
-              <PrivateRoute allowedRoles={ROLE_RIDER_WALLET}>
-                <AppLayout>
-                  <RiderWalletPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/wallet/branch"
-            element={
-              <PrivateRoute allowedRoles={ROLE_BRANCH}>
-                <AppLayout>
-                  <BranchWalletPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/admin/operations"
-            element={
-              <PrivateRoute allowedRoles={ROLE_OPERATIONS}>
-                <AppLayout>
-                  <AdminOperationsPortalPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/admin/hr-admin"
-            element={
-              <PrivateRoute allowedRoles={ROLE_HR_ADMIN}>
-                <AppLayout>
-                  <HRAdminPortalPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/warehouse/controller"
-            element={
-              <PrivateRoute allowedRoles={ROLE_WAREHOUSE}>
-                <AppLayout>
-                  <WarehouseControllerPortalPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/branch-office"
-            element={
-              <PrivateRoute allowedRoles={ROLE_BRANCH}>
-                <AppLayout>
-                  <BranchOfficePortalPage />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
             path="/settings"
             element={
-              <PrivateRoute allowedRoles={[...ROLE_SUPER, "FINM", "BMG", "ROM", "CAP", "AUD"]}>
+              <PrivateRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                  "SYS",
+                  "CAP",
+                  "AUD",
+                  "BMG",
+                  "ROM",
+                ]}
+              >
                 <AppLayout>
                   <Settings />
                 </AppLayout>
@@ -556,7 +382,7 @@ const App = () => (
             }
           />
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
