@@ -577,26 +577,26 @@ body {
 
 /* glass-opacity-tuning */
 :root {
-  --be-panel-alpha: 0.56;   /* main cards */
-  --be-soft-panel-alpha: 0.42;
-  --be-topbar-alpha: 0.50;
+  --be-panel-alpha: 0.30;
+  --be-soft-panel-alpha: 0.20;
+  --be-topbar-alpha: 0.28;
+  --be-inner-white-alpha: 0.18;
 }
 
-/* show more of the dashboard background */
+/* let the background image show through much more */
 .enterprise-shell {
   background:
-    linear-gradient(180deg, rgba(247, 249, 252, 0.26), rgba(241, 245, 249, 0.34)),
+    linear-gradient(180deg, rgba(247, 249, 252, 0.12), rgba(241, 245, 249, 0.18)),
     url("/images/b13.jpg") center top / cover no-repeat fixed !important;
 }
 
-/* lighter top bar */
 .enterprise-topbar {
   background: rgba(255, 255, 255, var(--be-topbar-alpha)) !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 
-/* all common content cards/panels */
+/* main panels */
 .enterprise-main .rounded-\[32px\],
 .enterprise-main .rounded-\[28px\],
 .enterprise-main .rounded-\[24px\],
@@ -604,31 +604,30 @@ body {
 .enterprise-main .rounded-2xl,
 .enterprise-main .rounded-xl {
   background-color: rgba(255, 255, 255, var(--be-panel-alpha)) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
 }
 
-/* softer inner boxes/stat cards */
+/* inner white blocks */
 .enterprise-main .bg-slate-50,
+.enterprise-main .bg-white\/90,
 .enterprise-main .bg-white\/80,
 .enterprise-main .bg-white\/70,
 .enterprise-main .bg-white\/60,
+.enterprise-main .bg-white\/50,
 .enterprise-main .bg-muted\/50 {
   background-color: rgba(255, 255, 255, var(--be-soft-panel-alpha)) !important;
 }
 
-/* tables and nested white blocks */
+/* catch-all for hardcoded white backgrounds inside pages */
 .enterprise-main [class*="bg-white"] {
-  background-color: rgba(255, 255, 255, 0.52) !important;
+  background-color: rgba(255, 255, 255, var(--be-inner-white-alpha)) !important;
 }
 
-/* keep text readable */
-.enterprise-main h1,
-.enterprise-main h2,
-.enterprise-main h3,
-.enterprise-main .font-black,
-.enterprise-main .font-bold {
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
+/* keep borders subtle */
+.enterprise-main [class*="border-slate-200"],
+.enterprise-main [class*="border-slate-100"] {
+  border-color: rgba(148, 163, 184, 0.22) !important;
 }
 
