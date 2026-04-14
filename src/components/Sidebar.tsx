@@ -1,36 +1,32 @@
-import type { ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Package,
-  Map,
-  Headset,
-  UserSquare2,
-  ShieldCheck,
-  Database,
-  Users,
-  Store,
-  FileText,
-  BarChart3,
-  Settings,
-  Truck,
-  QrCode,
-  ScanLine,
-  PenTool,
-  Route,
-  Warehouse,
   Activity,
-  Building2,
+  BarChart3,
   Boxes,
-  ClipboardList,
-  MapPinned,
   Camera,
-  UserCircle2, // Added
-  HandCoins, // Added
-  BriefcaseBusiness, // Added
+  ClipboardList,
+  Database,
+  FileText,
+  Headset,
+  LayoutDashboard,
+  Map,
+  MapPinned,
+  Package,
+  PenTool,
+  QrCode,
+  Route,
+  ScanLine,
+  Settings,
+  ShieldCheck,
+  Store,
+  Truck,
+  UserSquare2,
+  Users,
+  Warehouse,
 } from "lucide-react";
 
-import { useEnhancedAuth } from "@/hooks/useEnhancedAuth";
+import { supabase } from "@/lib/supabase/client";
 import {
   Sidebar as UISidebar,
   SidebarContent,
@@ -51,11 +47,14 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>;
 };
 
+type SidebarUser = {
+  email?: string;
+  roleCode?: string;
+  isSuperAdmin?: boolean;
+};
+
 const coreNav: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Profile", url: "/profile", icon: IdCard },
-  { title: "Profile", url: "/profile", icon: UserCircle2 }, // Added
-  { title: "Wallet Hub", url: "/wallet", icon: HandCoins }, // Added
   { title: "Create Delivery", url: "/create-delivery", icon: Package },
   { title: "Way Management", url: "/way-management", icon: Map },
 ];
@@ -64,10 +63,8 @@ const managementNav: NavItem[] = [
   { title: "Customer Service", url: "/customer-service", icon: Headset },
   { title: "Supervisor", url: "/supervisor", icon: ShieldCheck },
   { title: "Data Entry", url: "/data-entry", icon: Database },
-  { title: "Branch Office", url: "/branch-office", icon: Building2 }, // Already present
-  { title: "Admin (Operations)", url: "/admin/operations", icon: BriefcaseBusiness }, // Added
-  { title: "Admin (HR & Admin)", url: "/admin/hr-admin", icon: Users }, // Added
   { title: "Deliverymen", url: "/deliverymen", icon: Users },
+  { title: "Merchants", url: "/merchants", icon: Store },
   { title: "Receipts", url: "/receipts", icon: FileText },
   { title: "Reporting", url: "/reporting", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
@@ -76,15 +73,6 @@ const managementNav: NavItem[] = [
 const customerNav: NavItem[] = [
   { title: "Customer Portal", url: "/customer", icon: UserSquare2 },
   { title: "Live Tracking", url: "/production/live-tracking", icon: MapPinned },
-  { title: "Customer Wallet", url: "/wallet/customer", icon: HandCoins },
-];
-
-const merchantNav: NavItem[] = [
-  { title: "Merchants", url: "/merchants", icon: Store },
-  { title: "Enterprise Delivery", url: "/production/create-delivery", icon: Package },
-  { title: "Live Tracking", url: "/production/live-tracking", icon: Activity },
-  { title: "Branch Wallet", url: "/wallet/branch", icon: HandCoins },
-  { title: "Merchant Wallet", url: "/wallet/merchant", icon: HandCoins },
 ];
 
 const riderNav: NavItem[] = [
@@ -92,10 +80,8 @@ const riderNav: NavItem[] = [
   { title: "Delivery Execution", url: "/production/delivery-execution", icon: Truck },
   { title: "Focused Way List", url: "/production/focused-way-list", icon: Boxes },
   { title: "Live Tracking", url: "/production/live-tracking", icon: MapPinned },
-  { title: "Customer Wallet", url: "/wallet/customer", icon: HandCoins },
   { title: "Photo Evidence", url: "/production/delivery-execution", icon: Camera },
   { title: "Signature Pad", url: "/production/delivery-execution", icon: PenTool },
-  { title: "Rider Wallet", url: "/wallet/rider", icon: HandCoins },
 ];
 
 const warehouseNav: NavItem[] = [
@@ -103,7 +89,6 @@ const warehouseNav: NavItem[] = [
   { title: "QR / Barcode Intake", url: "/production/parcel-intake", icon: QrCode },
   { title: "OCR Workbench", url: "/production/ocr-workbench", icon: FileText },
   { title: "Warehouse Execution", url: "/production/warehouse-execution", icon: Warehouse },
-  { title: "Warehouse Controller", url: "/warehouse/controller", icon: Warehouse }, // Added
   { title: "Way Command Center", url: "/production/way-management", icon: Route },
 ];
 
@@ -117,32 +102,100 @@ const superNav: NavItem[] = [
   { title: "Parcel Intake", url: "/production/parcel-intake", icon: ScanLine },
   { title: "OCR Workbench", url: "/production/ocr-workbench", icon: FileText },
   { title: "Live Tracking", url: "/production/live-tracking", icon: Activity },
-  { title: "Merchant Wallet", url: "/wallet/merchant", icon: HandCoins },
 ];
+
+function normalizeToken(value?: string | null) {
+  return (value ?? "").trim().replace(/[\s-]+/g, "_").toUpperCase();
+}
 
 function hasRole(role: string, list: string[]) {
   return list.includes(role);
 }
 
-export function Sidebar() {
-  const location = useLocation();
-  const { roleCode, user, isSuperAdmin } = useEnhancedAuth();
+async function loadSidebarUser(): Promise<SidebarUser> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const email = (user?.email ?? "").toLowerCase();
-  const effectiveRole = email === "md@britiumexpress.com" ? "SYS" : roleCode;
+
+  let roleCode =
+    normalizeToken((user?.app_metadata as any)?.role_code) ||
+    normalizeToken((user?.app_metadata as any)?.role) ||
+    normalizeToken((user?.user_metadata as any)?.role_code) ||
+    normalizeToken((user?.user_metadata as any)?.role);
+
+  if (user?.id) {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role, role_code, app_role, user_role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const row: any = data || {};
+      roleCode =
+        normalizeToken(row.role_code) ||
+        normalizeToken(row.role) ||
+        normalizeToken(row.app_role) ||
+        normalizeToken(row.user_role) ||
+        roleCode;
+    } catch {
+      // ignore profile drift
+    }
+  }
+
+  const isSuperAdmin =
+    email === "md@britiumexpress.com" ||
+    ["SYS", "SUPER_ADMIN", "ADMIN"].includes(roleCode || "");
+
+  return { email, roleCode, isSuperAdmin };
+}
+
+export function Sidebar() {
+  const location = useLocation();
+  const [auth, setAuth] = useState<SidebarUser>({});
+
+  useEffect(() => {
+    let mounted = true;
+
+    const refresh = async () => {
+      const next = await loadSidebarUser();
+      if (mounted) setAuth(next);
+    };
+
+    void refresh();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void refresh();
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const effectiveRole = useMemo(
+    () => (auth.email === "md@britiumexpress.com" ? "SYS" : auth.roleCode || ""),
+    [auth.email, auth.roleCode]
+  );
 
   const showAll =
-    isSuperAdmin ||
+    Boolean(auth.isSuperAdmin) ||
     effectiveRole === "SYS" ||
     hasRole(effectiveRole, ["AUD", "CAP", "FINM", "HRM", "ROM", "BMG", "DSP", "HSP"]);
 
-  const showCustomer = showAll || hasRole(effectiveRole, ["CUS"]);
-  const showMerchant = showAll || hasRole(effectiveRole, ["MER"]);
+  const showCustomer = showAll || hasRole(effectiveRole, ["CUS", "CUSTOMER"]);
   const showRider = showAll || hasRole(effectiveRole, ["CUR", "RIDER", "DRIVER"]);
   const showWarehouse = showAll || hasRole(effectiveRole, ["HSC", "HSP", "DATA_ENTRY"]);
-  const showManagement = showAll || hasRole(effectiveRole, ["CSA", "CCA", "CSH", "DSP", "HSP", "BMG", "ROM"]);
+  const showManagement =
+    showAll || hasRole(effectiveRole, ["CSA", "CCA", "CSH", "DSP", "HSP", "BMG", "ROM"]);
 
-  const isActive = (url: string) => location.pathname === url;
+  const isActive = (url: string) =>
+    location.pathname === url || location.pathname.startsWith(`${url}/`);
 
   const renderItems = (items: NavItem[]) =>
     items.map((item) => (
@@ -163,7 +216,7 @@ export function Sidebar() {
 
   return (
     <UISidebar
-      collapsible="offcanvas"
+      collapsible="none"
       className="
         [&_[data-sidebar=sidebar]]:border-r
         [&_[data-sidebar=sidebar]]:border-white/10
@@ -222,17 +275,6 @@ export function Sidebar() {
           </SidebarGroup>
         )}
 
-        {showMerchant && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-              Merchant
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>{renderItems(merchantNav)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
         {showRider && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -269,7 +311,7 @@ export function Sidebar() {
 
       <SidebarFooter className="shrink-0 border-t border-white/10 p-3">
         <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-slate-300">
-          Signed in as {email || "user"} · role {effectiveRole || "INT"}
+          Signed in as {auth.email || "user"} · role {effectiveRole || "INT"}
         </div>
       </SidebarFooter>
 

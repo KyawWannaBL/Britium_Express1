@@ -511,3 +511,66 @@ body {
     padding: 28px 20px 36px;
   }
 }
+/* ===== Layout fix: keep sidebar visible + soften page containers ===== */
+
+.enterprise-shell {
+  background:
+    linear-gradient(180deg, rgba(247, 249, 252, 0.44), rgba(241, 245, 249, 0.52)),
+    url("/images/b13.jpg") center top / cover no-repeat fixed;
+}
+
+.enterprise-sidebar {
+  position: relative;
+  z-index: 30;
+  flex: 0 0 276px;
+  width: 276px;
+  min-width: 276px;
+}
+
+.enterprise-sidebar-header {
+  position: relative;
+  z-index: 2;
+}
+
+.enterprise-sidebar-scroll {
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 14px;
+  padding-bottom: 18px;
+}
+
+.enterprise-topbar {
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.enterprise-main {
+  background: transparent;
+}
+
+/* Make the common white panels/cards more translucent */
+.enterprise-main .rounded-\[32px\],
+.enterprise-main .rounded-\[28px\],
+.enterprise-main .rounded-\[24px\],
+.enterprise-main .rounded-3xl,
+.enterprise-main .rounded-2xl {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+/* Soften fully white containers without removing readability */
+.enterprise-main [class*="bg-white"] {
+  background-color: rgba(255, 255, 255, 0.68) !important;
+}
+
+/* Slightly stronger cards on forms/tables if needed */
+.enterprise-main .shadow-sm,
+.enterprise-main .shadow,
+.enterprise-main .shadow-lg {
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08) !important;
+}
