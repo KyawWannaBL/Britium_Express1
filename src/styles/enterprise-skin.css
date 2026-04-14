@@ -631,3 +631,114 @@ body {
   border-color: rgba(148, 163, 184, 0.22) !important;
 }
 
+
+/* ===== uniform-enterprise-theme ===== */
+
+:root {
+  --be-panel-alpha: 0.22;
+  --be-soft-panel-alpha: 0.14;
+  --be-inner-white-alpha: 0.12;
+  --be-topbar-alpha: 0.22;
+  --be-sidebar-alpha: 0.90;
+  --be-blur: 6px;
+}
+
+/* route-specific backgrounds */
+.app-shell-bg.screen-bg-dashboard { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b13.jpg") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-merchants { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b1.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-customer-service { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b2.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-customer { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b3.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-data-entry { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b4.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-supervisor { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b5.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-deliverymen { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b6.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-way-management { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b7.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-create-delivery { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b8.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-receipts { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b9.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-reporting { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b10.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-settings { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b11.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-pickup { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b12.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-warehouse { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b14.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-parcel-intake { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b15.jpg") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-ocr { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b16.jpg") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-live-tracking { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b17.jpg") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-delivery { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b5.png") center center / cover no-repeat fixed !important; }
+.app-shell-bg.screen-bg-default { background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.16)), url("/images/b13.jpg") center center / cover no-repeat fixed !important; }
+
+/* shell chrome */
+.enterprise-topbar {
+  background: rgba(255,255,255,var(--be-topbar-alpha)) !important;
+  border-color: rgba(148,163,184,0.18) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.enterprise-sidebar,
+[data-sidebar="sidebar"] {
+  background-color: rgba(4,10,20,var(--be-sidebar-alpha)) !important;
+}
+
+/* uniform transparency for every screen */
+.enterprise-main .rounded-\[32px\],
+.enterprise-main .rounded-\[28px\],
+.enterprise-main .rounded-\[24px\],
+.enterprise-main .rounded-3xl,
+.enterprise-main .rounded-2xl,
+.enterprise-main .rounded-xl,
+.enterprise-main .rounded-lg {
+  background-color: rgba(255,255,255,var(--be-panel-alpha)) !important;
+  backdrop-filter: blur(var(--be-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--be-blur)) !important;
+  box-shadow: 0 10px 24px rgba(15,23,42,0.05) !important;
+}
+
+/* inner cards / stats / setting panels */
+.enterprise-main .bg-slate-50,
+.enterprise-main .bg-muted\/50,
+.enterprise-main .bg-white\/90,
+.enterprise-main .bg-white\/80,
+.enterprise-main .bg-white\/70,
+.enterprise-main .bg-white\/60,
+.enterprise-main .bg-white\/50 {
+  background-color: rgba(255,255,255,var(--be-soft-panel-alpha)) !important;
+}
+
+/* catch-all for hard-coded white settings panels */
+.enterprise-main [class*="bg-white"] {
+  background-color: rgba(255,255,255,var(--be-inner-white-alpha)) !important;
+}
+
+/* uniform text color in content area */
+.enterprise-main,
+.enterprise-main h1,
+.enterprise-main h2,
+.enterprise-main h3,
+.enterprise-main h4,
+.enterprise-main h5,
+.enterprise-main p,
+.enterprise-main span,
+.enterprise-main label,
+.enterprise-main div,
+.enterprise-main td,
+.enterprise-main th,
+.enterprise-main li,
+.enterprise-main input,
+.enterprise-main textarea,
+.enterprise-main select {
+  color: #000 !important;
+}
+
+/* keep buttons readable */
+.enterprise-main button,
+.enterprise-main a[class*="bg-"],
+.enterprise-main .bg-\[\#0d2c54\],
+.enterprise-main .bg-sky-700,
+.enterprise-main .bg-slate-900,
+.enterprise-main .bg-amber-500 {
+  color: inherit;
+}
+
+/* subtle borders */
+.enterprise-main [class*="border-slate-200"],
+.enterprise-main [class*="border-slate-100"] {
+  border-color: rgba(148,163,184,0.18) !important;
+}
