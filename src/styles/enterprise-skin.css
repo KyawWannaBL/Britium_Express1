@@ -574,3 +574,61 @@ body {
 .enterprise-main .shadow-lg {
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08) !important;
 }
+
+/* glass-opacity-tuning */
+:root {
+  --be-panel-alpha: 0.56;   /* main cards */
+  --be-soft-panel-alpha: 0.42;
+  --be-topbar-alpha: 0.50;
+}
+
+/* show more of the dashboard background */
+.enterprise-shell {
+  background:
+    linear-gradient(180deg, rgba(247, 249, 252, 0.26), rgba(241, 245, 249, 0.34)),
+    url("/images/b13.jpg") center top / cover no-repeat fixed !important;
+}
+
+/* lighter top bar */
+.enterprise-topbar {
+  background: rgba(255, 255, 255, var(--be-topbar-alpha)) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* all common content cards/panels */
+.enterprise-main .rounded-\[32px\],
+.enterprise-main .rounded-\[28px\],
+.enterprise-main .rounded-\[24px\],
+.enterprise-main .rounded-3xl,
+.enterprise-main .rounded-2xl,
+.enterprise-main .rounded-xl {
+  background-color: rgba(255, 255, 255, var(--be-panel-alpha)) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* softer inner boxes/stat cards */
+.enterprise-main .bg-slate-50,
+.enterprise-main .bg-white\/80,
+.enterprise-main .bg-white\/70,
+.enterprise-main .bg-white\/60,
+.enterprise-main .bg-muted\/50 {
+  background-color: rgba(255, 255, 255, var(--be-soft-panel-alpha)) !important;
+}
+
+/* tables and nested white blocks */
+.enterprise-main [class*="bg-white"] {
+  background-color: rgba(255, 255, 255, 0.52) !important;
+}
+
+/* keep text readable */
+.enterprise-main h1,
+.enterprise-main h2,
+.enterprise-main h3,
+.enterprise-main .font-black,
+.enterprise-main .font-bold {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
