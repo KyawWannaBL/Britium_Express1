@@ -13,6 +13,7 @@ import {
   UserSquare2,
   ShieldCheck,
   Database,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -27,12 +28,14 @@ import {
 
 const navItems = [
   { title: "Dashboard", path: "/", icon: LayoutDashboard },
+  { title: "Operations Control", path: "/operations", icon: Workflow },
   { title: "Create Delivery", path: "/create-delivery", icon: Package },
   { title: "Way Management", path: "/way-management", icon: Map },
   { title: "Customer Service", path: "/customer-service", icon: Headset },
   { title: "Customer Portal", path: "/customer", icon: UserSquare2 },
   { title: "Supervisor Hub", path: "/supervisor", icon: ShieldCheck },
   { title: "Data Entry", path: "/data-entry", icon: Database },
+  { title: "Rider App", path: "/rider/portal", icon: Users },
   { title: "Deliverymen", path: "/deliverymen", icon: Users },
   { title: "Merchants", path: "/merchants", icon: Store },
   { title: "Receipts", path: "/receipts", icon: FileText },
@@ -79,18 +82,15 @@ export function Sidebar({ className }: SidebarProps) {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2">
-        <a
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://github.com/maplibre/maplibre-gl-style-spec/blob/main/CHANGELOG.md"
+        <div
           className={cn(
             "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
-            "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            "text-muted-foreground"
           )}
         >
           <History className="w-4 h-4" />
-          Changelog
-        </a>
+          Production workflow
+        </div>
       </SidebarFooter>
     </UISidebar>
   );
