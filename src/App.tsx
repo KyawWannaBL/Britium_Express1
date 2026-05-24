@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Sidebar } from "./components/Sidebar";
 
-// Page Imports
 import Dashboard from "./pages/Dashboard";
 import CreateDelivery from "./pages/CreateDelivery";
 import WayManagement from "./pages/WayManagement";
@@ -20,6 +19,7 @@ import SupervisorPortal from "./pages/SupervisorPortal";
 import DataEntryPortal from "./pages/DataEntryPortal";
 import CustomerServicePortal from "./pages/CustomerServicePortal";
 import CustomerPortal from "./pages/CustomerPortal";
+import ProductionOperations from "./pages/ProductionOperations";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +44,7 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<Navigate to="/" replace />} />
+                    <Route path="/operations" element={<ProductionOperations />} />
                     <Route path="/create-delivery" element={<CreateDelivery />} />
                     <Route path="/way-management" element={<WayManagement />} />
                     <Route path="/supervisor" element={<SupervisorPortal />} />
@@ -51,6 +52,7 @@ const App = () => (
                     <Route path="/customer-service" element={<CustomerServicePortal />} />
                     <Route path="/customer" element={<CustomerPortal />} />
                     <Route path="/deliverymen" element={<Deliverymen />} />
+                    <Route path="/rider/portal" element={<Deliverymen />} />
                     <Route path="/merchants" element={<Merchants />} />
                     <Route path="/waybill" element={<Waybill />} />
                     <Route path="/reporting" element={<Reporting />} />
