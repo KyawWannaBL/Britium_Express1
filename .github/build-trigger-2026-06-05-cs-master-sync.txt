@@ -1,0 +1,5 @@
+Trigger Build workflow for latest Customer Service master-data sync and manual merchant fallback updates.
+
+Repository: Britium_Enterprise_Portal
+Command: npm run build
+Date: 2026-06-05
