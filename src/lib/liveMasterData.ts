@@ -30,6 +30,8 @@ export type LiveMasterSnapshot = {
   loadedFrom: string[];
 };
 
+export const LIVE_MASTER_STORAGE_KEY = "britium_live_master_data_snapshot";
+
 export const fallbackVehicles: LiveMasterVehicle[] = [
   { id: "VEH-001", fleetId: "FLT-YGN-001", label: "Car", type: "Car", licenseNo: "YGN-2Q-6524", capacityKg: 350, assignedZone: "South Okkalapa", status: "Available" },
   { id: "VEH-002", fleetId: "FLT-YGN-002", label: "Mini Truck", type: "Mini Truck", licenseNo: "YGN-7B-6382", capacityKg: 1200, assignedZone: "East Dagon", status: "Available" },
@@ -43,18 +45,8 @@ export const fallbackPeople: LiveMasterPerson[] = [
 ];
 
 const SCHEMA_FIELD_NAMES = new Set([
-  "merchant_id",
-  "merchant_code",
-  "merchant_name",
-  "address_line_1",
-  "phone_primary",
-  "phone_secondary",
-  "preferred_delivery_instruction",
-  "capacity_kg",
-  "assigned_zone",
-  "license_no",
-  "fleet_id",
-  "status",
+  "merchant_id", "merchant_code", "merchant_name", "address_line_1", "phone_primary", "phone_secondary",
+  "preferred_delivery_instruction", "capacity_kg", "assigned_zone", "license_no", "fleet_id", "status",
 ]);
 
 function text(...values: unknown[]) {
@@ -109,14 +101,14 @@ function rowValue(row: Record<string, unknown>, ...keys: string[]) {
 }
 
 function normalizeMerchant(row: Record<string, unknown>): MerchantMaster | null {
-  const code = text(rowValue(row, "merchant_code", "MERCHANT_CODE", "code", "merchantCode", "customer_code")).toUpperCase();
+  const code = text(rowValue(row, "merchant_code", "MERCHANT_CODE", "code", "merchantCode", "customer_code", "merchant_no")).toUpperCase();
   const id = text(rowValue(row, "merchant_id", "MERCHANT_ID", "id", "account_id", "customer_id"), code);
-  const name = text(rowValue(row, "merchant_name", "MERCHANT_NAME", "name", "business_name", "account_name"));
-  const phone = text(rowValue(row, "phone_primary", "PHONE_PRIMARY", "phone", "primary_phone", "sender_phone"));
-  const contactPerson = text(rowValue(row, "contact_person", "CONTACT_PERSON", "contact", "contactPerson"));
-  const pickupAddress = text(rowValue(row, "address_line_1", "ADDRESS_LINE_1", "address_mm", "ADDRESS_MM", "pickup_address", "address"));
-  const pickupTownship = text(rowValue(row, "township", "TOWNSHIP", "pickup_township"));
-  const pickupCity = text(rowValue(row, "city", "CITY", "pickup_city"), "Yangon");
+  const name = text(rowValue(row, "merchant_name", "MERCHANT_NAME", "name", "business_name", "account_name", "sender_name"));
+  const phone = text(rowValue(row, "phone_primary", "PHONE_PRIMARY", "phone", "primary_phone", "sender_phone", "mobile"));
+  const contactPerson = text(rowValue(row, "contact_person", "CONTACT_PERSON", "contact", "contactPerson", "pic"));
+  const pickupAddress = text(rowValue(row, "address_line_1", "ADDRESS_LINE_1", "address_mm", "ADDRESS_MM", "pickup_address", "address", "sender_address"));
+  const pickupTownship = text(rowValue(row, "township", "TOWNSHIP", "pickup_township", "sender_township"));
+  const pickupCity = text(rowValue(row, "city", "CITY", "pickup_city", "region_state", "REGION_STATE"), "Yangon");
 
   if (!id || !code || !name) return null;
   if ([id, code, name].some(isSchemaField)) return null;
@@ -124,16 +116,16 @@ function normalizeMerchant(row: Record<string, unknown>): MerchantMaster | null 
   return {
     id,
     name,
-    code: code.slice(0, 3).padEnd(3, "X"),
+    code: code.replace(/[^A-Z0-9]/g, "").slice(0, 3).padEnd(3, "X"),
     phone,
     contactPerson: contactPerson || name,
     pickupAddress,
     pickupTownship,
     pickupCity,
     defaultPickupTime: text(rowValue(row, "pickup_time", "default_pickup_time", "defaultPickupTime", "preferred_pickup_time"), "10:00 AM - 12:00 PM"),
-    paymentMethod: asPaymentMethod(rowValue(row, "payment_method", "paymentMethod", "payment_profile")),
-    tariffProfile: text(rowValue(row, "tariff_profile", "tariff", "service_profile"), "Master tariff"),
-    billingProfile: text(rowValue(row, "billing_profile", "billingProfile", "payment_profile"), "Master billing"),
+    paymentMethod: asPaymentMethod(rowValue(row, "payment_method", "paymentMethod", "payment_profile", "payment_terms")),
+    tariffProfile: text(rowValue(row, "tariff_profile", "tariff", "service_profile", "allowed_cargo_weight_kg"), "Master tariff"),
+    billingProfile: text(rowValue(row, "billing_profile", "billingProfile", "payment_profile", "monthly_commitment_parcels"), "Master billing"),
   };
 }
 
@@ -148,16 +140,7 @@ function normalizeVehicle(row: Record<string, unknown>): LiveMasterVehicle | nul
   if (!id || (!label && !licenseNo && !fleetId)) return null;
   if ([id, fleetId, licenseNo, type, label].filter(Boolean).some(isSchemaField) && !licenseNo) return null;
 
-  return {
-    id,
-    fleetId,
-    label,
-    type: type || label || "Vehicle",
-    licenseNo: licenseNo || "No license recorded",
-    capacityKg: numberValue(rowValue(row, "capacity_kg", "capacityKg", "capacity")),
-    assignedZone,
-    status: asVehicleStatus(rowValue(row, "status", "availability_status", "availability")),
-  };
+  return { id, fleetId, label, type: type || label || "Vehicle", licenseNo: licenseNo || "No license recorded", capacityKg: numberValue(rowValue(row, "capacity_kg", "capacityKg", "capacity")), assignedZone, status: asVehicleStatus(rowValue(row, "status", "availability_status", "availability")) };
 }
 
 function normalizePerson(row: Record<string, unknown>, role: LiveMasterPerson["role"]): LiveMasterPerson | null {
@@ -169,47 +152,49 @@ function normalizePerson(row: Record<string, unknown>, role: LiveMasterPerson["r
   return { id, name, role, assignedZone, status: asPersonStatus(rowValue(row, "status", "availability")) };
 }
 
-function arraysFromStorageValue(value: unknown, keyHint = ""): Array<{ key: string; rows: Record<string, unknown>[] }> {
+function arraysFromStorageValue(value: unknown, keyPath = ""): Array<{ key: string; rows: Record<string, unknown>[] }> {
   const found: Array<{ key: string; rows: Record<string, unknown>[] }> = [];
   if (Array.isArray(value)) {
     if (value.every((item) => item && typeof item === "object" && !Array.isArray(item))) {
-      found.push({ key: keyHint, rows: value as Record<string, unknown>[] });
+      found.push({ key: keyPath.toLowerCase(), rows: value as Record<string, unknown>[] });
     }
     return found;
   }
 
   if (!value || typeof value !== "object") return found;
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-    found.push(...arraysFromStorageValue(child, key));
+    const childPath = [keyPath, key].filter(Boolean).join(".");
+    found.push(...arraysFromStorageValue(child, childPath));
   }
   return found;
 }
 
 function readBrowserRows() {
-  const empty: Record<string, Record<string, unknown>[]> = {};
-  if (typeof window === "undefined" || !window.localStorage) return empty;
+  const bucket: Record<string, Record<string, unknown>[]> = {};
+  if (typeof window === "undefined" || !window.localStorage) return bucket;
 
   for (let index = 0; index < window.localStorage.length; index += 1) {
     const storageKey = window.localStorage.key(index);
     if (!storageKey) continue;
     try {
       const raw = window.localStorage.getItem(storageKey);
-      if (!raw || (!storageKey.toLowerCase().includes("master") && !raw.toLowerCase().includes("merchant"))) continue;
+      if (!raw) continue;
+      const sample = `${storageKey} ${raw.slice(0, 6000)}`.toLowerCase();
+      if (!/(master|merchant|vehicle|fleet|rider|driver|helper|employee|township|tariff)/.test(sample)) continue;
       const parsed = JSON.parse(raw);
       for (const item of arraysFromStorageValue(parsed, storageKey)) {
-        const key = item.key.toLowerCase();
-        empty[key] = [...(empty[key] ?? []), ...item.rows];
+        bucket[item.key] = [...(bucket[item.key] ?? []), ...item.rows];
       }
     } catch {
-      // Ignore unrelated storage values.
+      // Ignore unrelated localStorage values.
     }
   }
-  return empty;
+  return bucket;
 }
 
 async function tableRows(table: string) {
   try {
-    const { data, error } = await supabase.from(table).select("*").limit(1000);
+    const { data, error } = await supabase.from(table).select("*").limit(2000);
     return !error && Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
   } catch {
     return [];
@@ -227,73 +212,33 @@ function uniqueBy<T>(rows: T[], getKey: (row: T) => string) {
 }
 
 function pickRows(bucket: Record<string, Record<string, unknown>[]>, words: string[]) {
-  return Object.entries(bucket)
-    .filter(([key]) => words.some((word) => key.includes(word)))
-    .flatMap(([, rows]) => rows);
+  return Object.entries(bucket).filter(([key]) => words.some((word) => key.includes(word))).flatMap(([, rows]) => rows);
+}
+
+export function saveLiveMasterDataSnapshot(snapshot: Pick<LiveMasterSnapshot, "merchants" | "vehicles" | "riders" | "drivers" | "helpers" | "employees">) {
+  if (typeof window === "undefined" || !window.localStorage) return false;
+  window.localStorage.setItem(LIVE_MASTER_STORAGE_KEY, JSON.stringify({ ...snapshot, savedAt: new Date().toISOString() }));
+  window.dispatchEvent(new CustomEvent("britium-master-data-updated"));
+  return true;
 }
 
 export async function loadLiveMasterDataSnapshot(): Promise<LiveMasterSnapshot> {
   const browser = readBrowserRows();
   const backend = {
-    merchant: [
-      ...(await tableRows("merchant_master")),
-      ...(await tableRows("merchants")),
-      ...(await tableRows("customers")),
-    ],
-    vehicle: [
-      ...(await tableRows("vehicle_master")),
-      ...(await tableRows("vehicles")),
-      ...(await tableRows("fleet_vehicles")),
-    ],
-    rider: [
-      ...(await tableRows("rider_master")),
-      ...(await tableRows("riders")),
-      ...(await tableRows("deliverymen")),
-    ],
-    driver: [
-      ...(await tableRows("driver_master")),
-      ...(await tableRows("drivers")),
-    ],
-    helper: [
-      ...(await tableRows("helper_master")),
-      ...(await tableRows("helpers")),
-    ],
-    employee: [
-      ...(await tableRows("employee_master")),
-      ...(await tableRows("employees")),
-      ...(await tableRows("staff_profiles")),
-    ],
+    merchant: [...(await tableRows("merchant_master")), ...(await tableRows("merchants")), ...(await tableRows("customers"))],
+    vehicle: [...(await tableRows("vehicle_master")), ...(await tableRows("vehicles")), ...(await tableRows("fleet_vehicles"))],
+    rider: [...(await tableRows("rider_master")), ...(await tableRows("riders")), ...(await tableRows("deliverymen"))],
+    driver: [...(await tableRows("driver_master")), ...(await tableRows("drivers"))],
+    helper: [...(await tableRows("helper_master")), ...(await tableRows("helpers"))],
+    employee: [...(await tableRows("employee_master")), ...(await tableRows("employees")), ...(await tableRows("staff_profiles"))],
   };
 
-  const merchants = uniqueBy([
-    ...pickRows(browser, ["merchant"]),
-    ...backend.merchant,
-  ].map(normalizeMerchant).filter(Boolean) as MerchantMaster[], (row) => row.id || row.code);
-
-  const vehicles = uniqueBy([
-    ...pickRows(browser, ["vehicle", "fleet"]),
-    ...backend.vehicle,
-  ].map(normalizeVehicle).filter(Boolean) as LiveMasterVehicle[], (row) => row.id || row.fleetId);
-
-  const riders = uniqueBy([
-    ...pickRows(browser, ["rider"]),
-    ...backend.rider,
-  ].map((row) => normalizePerson(row, "Rider")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
-
-  const drivers = uniqueBy([
-    ...pickRows(browser, ["driver"]),
-    ...backend.driver,
-  ].map((row) => normalizePerson(row, "Driver")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
-
-  const helpers = uniqueBy([
-    ...pickRows(browser, ["helper"]),
-    ...backend.helper,
-  ].map((row) => normalizePerson(row, "Helper")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
-
-  const employees = uniqueBy([
-    ...pickRows(browser, ["employee", "staff"]),
-    ...backend.employee,
-  ].map((row) => normalizePerson(row, "Employee")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
+  const merchants = uniqueBy([...pickRows(browser, ["merchant", "customer", "sender"]), ...backend.merchant].map(normalizeMerchant).filter(Boolean) as MerchantMaster[], (row) => row.id || row.code);
+  const vehicles = uniqueBy([...pickRows(browser, ["vehicle", "fleet"]), ...backend.vehicle].map(normalizeVehicle).filter(Boolean) as LiveMasterVehicle[], (row) => row.id || row.fleetId);
+  const riders = uniqueBy([...pickRows(browser, ["rider"]), ...backend.rider].map((row) => normalizePerson(row, "Rider")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
+  const drivers = uniqueBy([...pickRows(browser, ["driver"]), ...backend.driver].map((row) => normalizePerson(row, "Driver")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
+  const helpers = uniqueBy([...pickRows(browser, ["helper"]), ...backend.helper].map((row) => normalizePerson(row, "Helper")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
+  const employees = uniqueBy([...pickRows(browser, ["employee", "staff"]), ...backend.employee].map((row) => normalizePerson(row, "Employee")).filter(Boolean) as LiveMasterPerson[], (row) => row.id);
 
   return {
     merchants: merchants.length ? merchants : fallbackMerchantMaster,
@@ -302,14 +247,6 @@ export async function loadLiveMasterDataSnapshot(): Promise<LiveMasterSnapshot> 
     drivers,
     helpers: helpers.length ? helpers : fallbackPeople.filter((person) => person.role === "Helper"),
     employees,
-    loadedFrom: [
-      ...Object.keys(browser).map((key) => `browser:${key}`),
-      "backend:merchant_master",
-      "backend:vehicle_master",
-      "backend:rider_master",
-      "backend:driver_master",
-      "backend:helper_master",
-      "backend:employee_master",
-    ],
+    loadedFrom: [...Object.keys(browser).map((key) => `browser:${key}`), "backend:merchant_master", "backend:vehicle_master", "backend:rider_master", "backend:driver_master", "backend:helper_master", "backend:employee_master"],
   };
 }
