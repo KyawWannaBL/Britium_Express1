@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Sidebar } from "./components/Sidebar";
 
@@ -23,19 +23,28 @@ import ProductionOperations from "./pages/ProductionOperations";
 
 const queryClient = new QueryClient();
 
-function RouteUrlNormalizer() {
+function normalizeInitialUrl() {
+  if (typeof window === "undefined") return;
+  const { pathname, search, hash } = window.location;
+  if (!hash.startsWith("#/")) return;
+
+  const hashPath = hash.slice(1).split("?")[0] || "/";
+  const hashSearch = hash.includes("?") ? `?${hash.split("?").slice(1).join("?")}` : search;
+  window.history.replaceState(null, "", `${hashPath}${hashSearch}`);
+}
+
+normalizeInitialUrl();
+
+function LegacyRouteNormalizer() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const hashRoute = window.location.hash.startsWith("#/") ? window.location.hash.slice(1) : "";
-    if (!hashRoute) return;
-
-    const nextPath = hashRoute.split("?")[0] || "/";
-    const nextSearch = hashRoute.includes("?") ? `?${hashRoute.split("?").slice(1).join("?")}` : window.location.search;
-
-    if (window.location.pathname !== nextPath || window.location.hash) {
-      window.history.replaceState(null, "", `${nextPath}${nextSearch}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }
-  }, []);
+    if (!location.hash?.startsWith("#/")) return;
+    const nextPath = location.hash.slice(1).split("?")[0] || "/";
+    const nextSearch = location.hash.includes("?") ? `?${location.hash.split("?").slice(1).join("?")}` : location.search;
+    navigate(`${nextPath}${nextSearch}`, { replace: true });
+  }, [location.hash, location.search, navigate]);
 
   return null;
 }
@@ -46,19 +55,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <RouteUrlNormalizer />
+        <LegacyRouteNormalizer />
         <SidebarProvider defaultOpen={true}>
           <div className="flex h-screen w-full overflow-hidden bg-background">
             <Sidebar />
             <SidebarInset>
               <main className="flex-1 overflow-y-auto p-4 md:p-8">
-                <Suspense
-                  fallback={
-                    <div className="flex h-full items-center justify-center">
-                      Loading Britium Express...
-                    </div>
-                  }
-                >
+                <Suspense fallback={<div className="flex h-full items-center justify-center">Loading Britium Express...</div>}>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<Navigate to="/" replace />} />
