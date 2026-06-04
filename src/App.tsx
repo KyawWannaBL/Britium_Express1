@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,12 +23,30 @@ import ProductionOperations from "./pages/ProductionOperations";
 
 const queryClient = new QueryClient();
 
+function RouteUrlNormalizer() {
+  useEffect(() => {
+    const hashRoute = window.location.hash.startsWith("#/") ? window.location.hash.slice(1) : "";
+    if (!hashRoute) return;
+
+    const nextPath = hashRoute.split("?")[0] || "/";
+    const nextSearch = hashRoute.includes("?") ? `?${hashRoute.split("?").slice(1).join("?")}` : window.location.search;
+
+    if (window.location.pathname !== nextPath || window.location.hash) {
+      window.history.replaceState(null, "", `${nextPath}${nextSearch}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }, []);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <RouteUrlNormalizer />
         <SidebarProvider defaultOpen={true}>
           <div className="flex h-screen w-full overflow-hidden bg-background">
             <Sidebar />
@@ -50,6 +68,7 @@ const App = () => (
                     <Route path="/supervisor" element={<SupervisorPortal />} />
                     <Route path="/data-entry" element={<DataEntryPortal />} />
                     <Route path="/customer-service" element={<CustomerServicePortal />} />
+                    <Route path="/customer-service/*" element={<CustomerServicePortal />} />
                     <Route path="/customer" element={<CustomerPortal />} />
                     <Route path="/deliverymen" element={<Deliverymen />} />
                     <Route path="/rider/portal" element={<Deliverymen />} />
