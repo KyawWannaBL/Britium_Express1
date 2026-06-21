@@ -236,7 +236,8 @@ function sameBranchOrAny(masterBranch?: string, pickupBranch?: string) {
 
 function pickupKey(row: PickupQueueItem | null) {
   return row?.pickup_id || row?.request_code || row?.id || "";
-}\n
+}
+
 function statusText(row: PickupQueueItem) {
   return text(row.supervisor_status || row.pickup_status || row.status || row.workflow_stage || "PICKUP_REQUESTED").replace(/_/g, " ");
 }
