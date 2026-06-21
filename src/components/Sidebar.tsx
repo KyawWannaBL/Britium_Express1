@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Database,
   Workflow,
+  Truck,
+  Route,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -34,6 +36,8 @@ const navItems = [
   { title: "Customer Service", path: "/customer-service", icon: Headset },
   { title: "Customer Portal", path: "/customer", icon: UserSquare2 },
   { title: "Supervisor Hub", path: "/supervisor", icon: ShieldCheck },
+  { title: "Supervisor Pickup", path: "/supervisor-pickup", icon: Truck },
+  { title: "Supervisor Wayplan", path: "/supervisor-wayplan", icon: Route },
   { title: "Data Entry", path: "/data-entry", icon: Database },
   { title: "Rider App", path: "/rider/portal", icon: Users },
   { title: "Deliverymen", path: "/deliverymen", icon: Users },
