@@ -16,6 +16,8 @@ import Waybill from "@/pages/Waybill";
 import Reporting from "./pages/Reporting";
 import Settings from "./pages/Settings";
 import SupervisorPortal from "./pages/SupervisorPortal";
+import SupervisorPickupPage from "./pages/SupervisorPickupPage";
+import SupervisorWayplanPage from "./pages/SupervisorWayplanPage";
 import DataEntryPortal from "./pages/DataEntryPortal";
 import CustomerServicePortal from "./pages/CustomerServicePortal";
 import CustomerPortal from "./pages/CustomerPortal";
@@ -69,6 +71,8 @@ const App = () => (
                     <Route path="/create-delivery" element={<CreateDelivery />} />
                     <Route path="/way-management" element={<WayManagement />} />
                     <Route path="/supervisor" element={<SupervisorPortal />} />
+                    <Route path="/supervisor-pickup" element={<SupervisorPickupPage />} />
+                    <Route path="/supervisor-wayplan" element={<SupervisorWayplanPage />} />
                     <Route path="/data-entry" element={<DataEntryPortal />} />
                     <Route path="/customer-service" element={<CustomerServicePortal />} />
                     <Route path="/customer-service/*" element={<CustomerServicePortal />} />
