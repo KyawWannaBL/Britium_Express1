@@ -6,6 +6,8 @@ export const ROUTES = {
   CUSTOMER_SERVICE: "/customer-service",
   CUSTOMER_PORTAL: "/customer",
   SUPERVISOR: "/supervisor",
+  PICKUP_BOARD: "/supervisor-pickup",
+  WAYPLAN_BOARD: "/supervisor-wayplan",
   DATA_ENTRY: "/data-entry",
   DELIVERYMEN: "/deliverymen",
   MERCHANTS: "/merchants",
