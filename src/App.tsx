@@ -22,12 +22,14 @@ import DataEntryPortal from "./pages/DataEntryPortal";
 import CustomerServicePortal from "./pages/CustomerServicePortal";
 import CustomerPortal from "./pages/CustomerPortal";
 import ProductionOperations from "./pages/ProductionOperations";
+import LiveApiScreen from "./pages/LiveApiScreen";
+import { appScreens, type AppScreen } from "@/lib/appScreens";
 
 const queryClient = new QueryClient();
 
 function normalizeInitialUrl() {
   if (typeof window === "undefined") return;
-  const { pathname, search, hash } = window.location;
+  const { search, hash } = window.location;
   if (!hash.startsWith("#/")) return;
 
   const hashPath = hash.slice(1).split("?")[0] || "/";
@@ -51,6 +53,38 @@ function LegacyRouteNormalizer() {
   return null;
 }
 
+function renderScreen(screen: AppScreen) {
+  switch (screen.key) {
+    case "DASHBOARD":
+      return <Dashboard />;
+    case "CUSTOMER_SERVICE":
+    case "CS_PORTAL":
+      return <CustomerServicePortal />;
+    case "DATA_ENTRY":
+      return <DataEntryPortal />;
+    case "WAYBILL_STUDIO":
+      return <Waybill />;
+    case "WAYPLAN_COMMAND":
+      return <WayManagement />;
+    case "SUPERVISOR":
+      return <SupervisorPortal />;
+    case "SUPERVISOR_PICKUP":
+      return <SupervisorPickupPage />;
+    case "SUPERVISOR_WAYPLAN":
+      return <SupervisorWayplanPage />;
+    case "MERCHANT_PORTAL":
+      return <Merchants />;
+    case "CUSTOMER_PORTAL":
+      return <CustomerPortal />;
+    case "RIDER_MANAGEMENT":
+      return <Deliverymen />;
+    case "SETTINGS":
+      return <Settings />;
+    default:
+      return <LiveApiScreen screen={screen} />;
+  }
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -65,24 +99,20 @@ const App = () => (
               <main className="flex-1 overflow-y-auto p-4 md:p-8">
                 <Suspense fallback={<div className="flex h-full items-center justify-center">Loading Britium Express...</div>}>
                   <Routes>
-                    <Route path="/" element={<Dashboard />} />
+                    {appScreens.map((screen) => (
+                      <Route key={screen.key} path={screen.path} element={renderScreen(screen)} />
+                    ))}
+
                     <Route path="/dashboard" element={<Navigate to="/" replace />} />
                     <Route path="/operations" element={<ProductionOperations />} />
                     <Route path="/create-delivery" element={<CreateDelivery />} />
                     <Route path="/way-management" element={<WayManagement />} />
-                    <Route path="/supervisor" element={<SupervisorPortal />} />
-                    <Route path="/supervisor-pickup" element={<SupervisorPickupPage />} />
-                    <Route path="/supervisor-wayplan" element={<SupervisorWayplanPage />} />
-                    <Route path="/data-entry" element={<DataEntryPortal />} />
-                    <Route path="/customer-service" element={<CustomerServicePortal />} />
                     <Route path="/customer-service/*" element={<CustomerServicePortal />} />
-                    <Route path="/customer" element={<CustomerPortal />} />
                     <Route path="/deliverymen" element={<Deliverymen />} />
                     <Route path="/rider/portal" element={<Deliverymen />} />
-                    <Route path="/merchants" element={<Merchants />} />
-                    <Route path="/waybill" element={<Waybill />} />
+                    <Route path="/merchants" element={<Navigate to="/merchant-portal" replace />} />
+                    <Route path="/waybill" element={<Navigate to="/waybill-studio" replace />} />
                     <Route path="/reporting" element={<Reporting />} />
-                    <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </Suspense>
